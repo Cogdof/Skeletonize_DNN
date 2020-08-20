@@ -98,11 +98,114 @@ def imshow(img):
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
+def train():
+    criterion = nn.CrossEntropyLoss().cuda()
+    optimizer = optim.Adam(net.parameters(), lr=0.0001)  # origin  lr =0.00001
+    train_size = dataset_sizes[TRAIN]
+
+    #==================#
+    epoch_count = 2
+    version = "1.0"
+
+
+    for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
+        running_loss = 0.0
+        for i, data in enumerate(dataloaders[TRAIN], 0):
+            # get the inputs
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # print(inputs.shape)
+            # print(inputs.shape)
+            # forward + backward + optimize
+            outputs, f = net(inputs)
+            # print(outputs.shape)
+            # print(labels.shape)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            if (loss.item() > 1000):
+                print(loss.item())
+                for param in net.parameters():
+                    print(param.data)
+            # print statistics
+            running_loss += loss.item()
+            # print(loss.item())
+            if i % train_size / 1000 == train_size / 1000 - 1:  # print every 2000 mini-batches
+                print('===== [%d, %5d] loss: %.3f ======' %
+                      (epoch + 1, i + 1, running_loss))
+                running_loss = 0.0
+            if i % 50 == 49:  # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                      (epoch + 1, i + 1, running_loss / 50))
+                running_loss = 0.0
+
+        save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ep{}_{}.pth".format(epoch,version)
+        torch.save(net.state_dict(), save_path)
+    ''' original
+            running_loss += loss.item()
+            if i % 50 == 49:    # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                      (epoch + 1, i + 1, running_loss / 50))
+                running_loss = 0.0
+    '''
+
+    print('Finished Training')
+
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_{}.pth".format(version)
+    torch.save(net.state_dict(), save_path)
+
+def validation():
+    class_correct = list(0. for i in range(label_count))
+    class_total = list(0. for i in range(label_count))
+    with torch.no_grad():
+        for data in dataloaders[VAL]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+            outputs, _ = net(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    for i in range(label_count):
+        print('Accuracy of %5s : %2d %%' % (
+            image_datasets[i], 100 * class_correct[i] / class_total[i]))
+
+
+def test():
+    class_correct = list(0. for i in range(label_count))
+    class_total = list(0. for i in range(label_count))
+
+    with torch.no_grad():
+        for data in dataloaders[TEST]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+            outputs, f = net(images)
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(4):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    for i in range(label_count):
+        print('Accuracy of %5s : %2d %%' % (
+            image_datasets[i], 100 * class_correct[i] / class_total[i]))
+
 
 data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ver1.pth"
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -136,7 +239,7 @@ image_datasets = {
 
 dataloaders = {
     x: torch.utils.data.DataLoader(
-        image_datasets[x], batch_size=2,
+        image_datasets[x], batch_size=2,        #origin ver batch= 4 | ver1 batch=2 | ver2  batch=1
         shuffle=True, num_workers=4
     )
     for x in [TRAIN, VAL, TEST]
@@ -153,103 +256,25 @@ label_count = len(image_datasets[TRAIN].classes)
 print(image_datasets[TRAIN].classes)
 
 s = 't'
-while(s != "y" or s !="Y"):
-    print("Ready to train... continue? > [Y/N]")
+while(s != "1" or s !="2"):
+    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | ... ] ")
     s = input()
-    if s== "y" or s =="Y":
+    if s== "1":
+        train()
+        validation()
+        test()
         break
+    elif s=="2":
 
+        net = Net()
+        net.load_state_dict(torch.load(save_path))
+        net.to(device)
+        validation()
+        test()
+        break
+    else:
+        print("check command")
 
-criterion = nn.CrossEntropyLoss().cuda()
-optimizer = optim.Adam(net.parameters(),lr=0.00001)
-epoch_count = 2
-train_size = dataset_sizes[TRAIN]
-
-for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
-    running_loss = 0.0
-    for i, data in enumerate(dataloaders[TRAIN], 0):
-        # get the inputs
-        inputs, labels = data
-        inputs, labels = inputs.to(device), labels.to(device)
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-        #print(inputs.shape)
-        #print(inputs.shape)
-        # forward + backward + optimize
-        outputs,f = net(inputs)
-        #print(outputs.shape)
-        #print(labels.shape)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        if(loss.item() > 1000):
-            print(loss.item())
-            for param in net.parameters():
-                print(param.data)
-        # print statistics
-        running_loss += loss.item()
-        #print(loss.item())
-        if i % train_size/1000 == train_size/1000-1:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss))
-            running_loss = 0.0
-        if i % 50 == 49:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss/50))
-            running_loss = 0.0
-
-''' original
-        running_loss += loss.item()
-        if i % 50 == 49:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 50))
-            running_loss = 0.0
-'''
-
-print('Finished Training')
-
-class_correct = list(0. for i in range(label_count))
-class_total = list(0. for i in range(label_count))
-with torch.no_grad():
-    for data in dataloaders[VAL]:
-        images, labels = data
-        images = images.cuda()
-        labels = labels.cuda()
-        outputs,_ = net(images)
-        _, predicted = torch.max(outputs, 1)
-        c = (predicted == labels).squeeze()
-        for i in range(4):
-            label = labels[i]
-            class_correct[label] += c[i].item()
-            class_total[label] += 1
-
-
-for i in range(label_count):
-    print('Accuracy of %5s : %2d %%' % (
-        image_datasets[i], 100 * class_correct[i] / class_total[i]))
-
-
-class_correct = list(0. for i in range(label_count))
-class_total = list(0. for i in range(label_count))
-with torch.no_grad():
-    for data in dataloaders[TEST]:
-        images, labels = data
-        images = images.cuda()
-        labels = labels.cuda()
-        outputs, f = net(images)
-        _, predicted = torch.max(outputs, 1)
-        c = (predicted == labels).squeeze()
-        for i in range(4):
-            label = labels[i]
-            class_correct[label] += c[i].item()
-            class_total[label] += 1
-
-
-for i in range(label_count):
-    print('Accuracy of %5s : %2d %%' % (
-        image_datasets[i], 100 * class_correct[i] / class_total[i]))
 
 import matplotlib.pyplot as plt
 import numpy as np

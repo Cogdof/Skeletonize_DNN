@@ -8,7 +8,7 @@ VGGNet based DNN for recognition skeletonized character
 
 This model is for performance assistance in cases where the recognition rate is low in the existing OCR performance, and consists of Skeletonize and VGG.
 
-<img width="500" src="./sample/word_bf.png"> <img width="500" src="./sample/word_af.png">
+<img width="300" src="./sample/word_bf.png"> <img width="300" src="./sample/word_af.png">
 
 
 ### Update
