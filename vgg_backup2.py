@@ -116,8 +116,8 @@ def train():
     train_size = dataset_sizes[TRAIN]
 
     #==================#
-    epoch_count = 5
-    version = "1.0"
+    epoch_count = 2
+    version = "backp_1.0"
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -181,15 +181,15 @@ def validation():
             outputs, _ = net(images)
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
-            for i in range(len(labels)):
+            for i in range(4):
                 label = labels[i]
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
 
     for i in range(label_count):
-        print('Accuracy class_correctof %5s : %2d %%' % (
-            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-    print("===")
+        print('Accuracy of %5s : %2d %%' % (
+            image_datasets[i], 100 * class_correct[i] / class_total[i]))
+
 
 def test():
     class_correct = list(0. for i in range(label_count))
@@ -203,7 +203,7 @@ def test():
             outputs, f = net(images)
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
-            for i in range(len(labels)):
+            for i in range(4):
                 label = labels[i]
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
@@ -217,7 +217,7 @@ data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/d
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ep4_1.0.pth"
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ver1.pth"
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -281,11 +281,6 @@ while(s != "1" or s !="2"):
         net = Net()
         net.load_state_dict(torch.load(save_path))
         net.to(device)
-
-        param = list(net.parameters())
-        print(len(param))
-        for i in param:
-            print(i.shape)
         validation()
         test()
         break
