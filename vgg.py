@@ -6,11 +6,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
+from PIL import Image
+from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
 import os
 import copy
+import matplotlib.pyplot as plt
+import numpy as np
+import PIL
 
 
 '''
@@ -20,7 +25,13 @@ Based network : Pytorch VGG19
 
 Dataset : English single character set
 
-Lastest update : 2020.08.20 fri 
+Lastest update : 2020.08.24 mon 
+
+
+version
+ver 1.0 batch 8, epoch 5
+ver 1.1 batch 8, epoch 10
+ver 1.2 batch 8, epoch 20
 
 ==================================================
 '''
@@ -98,8 +109,6 @@ for i in param:
     print(i.shape)
 #print(param[0].shape)
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 # functions to show an image
 
@@ -116,8 +125,10 @@ def train():
     train_size = dataset_sizes[TRAIN]
 
     #==================#
-    epoch_count = 5
-    version = "1.0"
+    #  ver1.0 : epoch =5, batch 8
+    #  ver1.1 : epoch =10, batch 8
+    epoch_count = 10
+    version = "1.1"
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -155,8 +166,9 @@ def train():
                       (epoch + 1, i + 1, running_loss / 50))
                 running_loss = 0.0
 
-        save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ep{}_{}.pth".format(epoch,version)
-        torch.save(net.state_dict(), save_path)
+        # middle save
+        #save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skddn_temp_ep{}_ver{}.pth".format(epoch,version)
+        #torch.save(net.state_dict(), save_path)
     ''' original
             running_loss += loss.item()
             if i % 50 == 49:    # print every 2000 mini-batches
@@ -167,7 +179,7 @@ def train():
 
     print('Finished Training')
 
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_{}.pth".format(version)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_{}_ver{}.pth".format(epoch_count, version)
     torch.save(net.state_dict(), save_path)
 
 def validation():
@@ -189,7 +201,7 @@ def validation():
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-    print("===")
+
 
 def test():
     class_correct = list(0. for i in range(label_count))
@@ -200,6 +212,7 @@ def test():
             images, labels = data
             images = images.cuda()
             labels = labels.cuda()
+
             outputs, f = net(images)
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
@@ -210,14 +223,14 @@ def test():
 
     for i in range(label_count):
         print('Accuracy of %5s : %2d %%' % (
-            image_datasets[i], 100 * class_correct[i] / class_total[i]))
+            image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
 
 
 data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ep4_1.0.pth"
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_9_ver1.1.pth"
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -269,15 +282,21 @@ print(image_datasets[TRAIN].classes)
 
 s = 't'
 while(s != "1" or s !="2"):
-    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | ... ] ")
+    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case ] ")
     s = input()
     if s== "1":
+
+        # need to set epoch, version info.
+
         train()
+        print("-----------------------")
         validation()
+        print("-----------------------")
         test()
         break
-    elif s=="2":
 
+
+    elif s=="2":
         net = Net()
         net.load_state_dict(torch.load(save_path))
         net.to(device)
@@ -286,15 +305,73 @@ while(s != "1" or s !="2"):
         print(len(param))
         for i in param:
             print(i.shape)
+        print("-----------------------")
         validation()
+        print("-----------------------")
         test()
         break
+
+
+    elif s=="3":
+        net = Net()
+        net.load_state_dict(torch.load(save_path))
+        net.to(device)
+
+        param = list(net.parameters())
+        print(len(param))
+        for i in param:
+            print(i.shape)
+        print("-----------------------")
+        break;
+
     else:
         print("check command")
 
 
-import matplotlib.pyplot as plt
-import numpy as np
+
+print("-----------------------")
+
+
+#해결필요함.
+print("Test in real case")
+sample_case_path = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/sample_test'
+
+
+def image_loader(loader, image_name):
+
+    image = Image.open(image_name)
+    image = loader(image)
+    image = torch.tensor(image, requires_grad=True)
+    image = image.unsqueeze(0)
+    return image
+
+data_transforms2 = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+])
+print(net(image_loader(data_transforms2, sample_case_path+"/Test/1.jpg")))
+'''
+with torch.no_grad():
+
+    images = images.cuda()
+    labels = labels.cuda()
+
+    outputs, f = net(images)
+    _, predicted = torch.max(outputs, 1)
+    c = (predicted == labels).squeeze()
+    for i in range(len(labels)):
+        label = labels[i]
+
+    #print(images)
+    print("target :  ",labels)
+    #print("recognition :  ", _)
+    #print(c)
+    print("Recognition  : " , class_names[predicted])
+
+
+'''
+
 
 # functions to show an image
 
