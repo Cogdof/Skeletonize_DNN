@@ -127,8 +127,8 @@ def train():
     #==================#
     #  ver1.0 : epoch =5, batch 8
     #  ver1.1 : epoch =10, batch 8
-    epoch_count = 10
-    version = "1.1"
+    epoch_count = 20
+    version = "1.2"
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -167,8 +167,8 @@ def train():
                 running_loss = 0.0
 
         # middle save
-        #save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skddn_temp_ep{}_ver{}.pth".format(epoch,version)
-        #torch.save(net.state_dict(), save_path)
+        save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skddn_temp_ep{}_ver{}.pth".format(epoch,version)
+        torch.save(net.state_dict(), save_path)
     ''' original
             running_loss += loss.item()
             if i % 50 == 49:    # print every 2000 mini-batches
