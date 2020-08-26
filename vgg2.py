@@ -25,7 +25,7 @@ Based network : Pytorch VGG19
 
 Dataset : English single character set
 
-Lastest update : 2020.08.25 Tue 
+Lastest backup : 2020.08.25 Tue 
 
 
 version
