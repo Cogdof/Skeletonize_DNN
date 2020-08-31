@@ -32,10 +32,10 @@ version
 ver 1.0 batch 8, epoch 5
 ver 1.1 batch 8, epoch 10
 ver 1.2 batch 8, epoch 20
-
+ver 1.3 batch 4, epoch 5
+ver 2.1 batch 8 epoch 5, skeletonize
 ==================================================
 '''
-
 
 print(torch.cuda.is_available())
 
@@ -124,11 +124,7 @@ def train():
     optimizer = optim.Adam(net.parameters(), lr=0.00001)  # origin  lr =0.00001
     train_size = dataset_sizes[TRAIN]
 
-    #==================#
-    #  ver1.0 : epoch =5, batch 8
-    #  ver1.1 : epoch =10, batch 8
-    epoch_count = 20
-    version = "1.2"
+
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -167,8 +163,8 @@ def train():
                 running_loss = 0.0
 
         # middle save
-        save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skddn_temp_ep{}_ver{}.pth".format(epoch,version)
-        torch.save(net.state_dict(), save_path)
+        #save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skddn_temp_ep{}_ver{}.pth".format(epoch,version)
+        #torch.save(net.state_dict(), save_path)
     ''' original
             running_loss += loss.item()
             if i % 50 == 49:    # print every 2000 mini-batches
@@ -234,7 +230,8 @@ def test():
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
 
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
+#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'       # original
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -272,11 +269,24 @@ image_datasets = {
 
 dataloaders = {
     x: torch.utils.data.DataLoader(
-        image_datasets[x], batch_size=8,        #origin ver batch= 4 | ver1 batch=2 | ver2  batch=8
+        image_datasets[x], batch_size=8,        #origin ver batch= 4 | ver1 batch=2 | ver2  batch=8  | ver batch=4
         shuffle=True, num_workers=4
     )
     for x in [TRAIN, VAL, TEST]
 }
+
+
+# ==================#
+#  ver1.0 : epoch =5, batch 8
+#  ver1.1 : epoch =10, batch 8
+#  ver1.2 : epoch =20, batch 8
+#  ver1.3 : epoch = 5, batch 4
+#  ver2.1 : epoch = 5 ,batch 8 , skeletonize
+
+epoch_count = 5
+version = "2.1"
+
+
 
 dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
 
