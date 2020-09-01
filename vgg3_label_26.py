@@ -21,7 +21,7 @@ import PIL
 '''
 ==================================================
 
-
+* beta version *
 
 [Based network]
  Pytorch VGG19
@@ -39,7 +39,7 @@ v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → d
 
 
 [Lastest update]
-2020.09. 02 Tue 
+2020.09. 02 Tue copy
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -48,10 +48,21 @@ ver 1.2 batch 8, epoch 20
 ver 1.3 batch 4, epoch 5
 ver 2.1 batch 8 epoch 5, skeletonize(external data)
 
-ver 3.0 batch 4. epoch 5, dataset6
+ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
 ==================================================
 '''
+
+epoch_count = 5
+version = "3.1"
+data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
+#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'       # original
+TRAIN = 'Train'
+VAL = 'Validation'
+TEST = 'Test'
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_20_ver1.2.pth"
+
+
 
 print(torch.cuda.is_available())
 
@@ -95,7 +106,7 @@ class Net(nn.Module):
 
         self.avg_pool = nn.AvgPool2d(7)
         #512 1 1
-        self.classifier = nn.Linear(512, 35)
+        self.classifier = nn.Linear(512, 52)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
         self.fc2 = nn.Linear(4096,4096)
@@ -246,12 +257,6 @@ def test():
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
 
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'       # original
-TRAIN = 'Train'
-VAL = 'Validation'
-TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_20_ver1.2.pth"
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -292,15 +297,8 @@ dataloaders = {
 }
 
 
-# ==================#
-#  ver1.0 : epoch =5, batch 8
-#  ver1.1 : epoch =10, batch 8
-#  ver1.2 : epoch =20, batch 8
-#  ver1.3 : epoch = 5, batch 4
-#  ver2.1 : epoch = 5 ,batch 8 , skeletonize
 
-epoch_count = 5
-version = "2.1"
+
 
 
 

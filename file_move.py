@@ -1,15 +1,15 @@
 import os
 import shutil
 
-befor_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data/Validation'
-after_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data/Test'
+befor_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/train'
+after_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/valid'
 
 befor_file_list = os.listdir(befor_dir)
 
 if not(os.path.isdir(after_dir)):                 #새  파일들을 저장할 디렉토리를 생성
     os.makedirs(os.path.join(after_dir))
 
-test_image_num = 10
+test_image_num = 50
 
 for label_folder in befor_file_list:
     count = 0;
@@ -21,9 +21,9 @@ for label_folder in befor_file_list:
     for image in image_list:
 
         if count < 10:
-            shutil.move(befor_dir+'/'+label_folder+'/'+image , after_dir+'/'+label_folder+'/'+image)
+            shutil.copy(befor_dir+'/'+label_folder+'/'+image , after_dir+'/'+label_folder+'/'+image)
             count = count + 1
             print(
-                befor_dir + '/' + label_folder + '/' + image + ' \n are move to \n' + after_dir + '/' + label_folder + '/' + image)
+                befor_dir + '/' + label_folder + '/' + image + ' \n are copy to \n' + after_dir + '/' + label_folder + '/' + image)
         else :
             break;

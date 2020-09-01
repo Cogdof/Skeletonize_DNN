@@ -40,7 +40,8 @@ ver 1.2 batch 8, epoch 20
 print(torch.cuda.is_available())
 
 
-transform = transforms.Compose([
+transform = transforms.Compose        #print(avg_pool.size())
+([
     transforms.Resize(224),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
