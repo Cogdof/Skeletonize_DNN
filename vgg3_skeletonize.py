@@ -18,50 +18,6 @@ import numpy as np
 import PIL
 
 
-'''
-==================================================
-
-* beta version *
-
-[Based network]
- Pytorch VGG19
-
-[Dataset] 
-v1.x English single character set(external data)
-v2.x
-
-v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
-
-v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → dataset
-
-
-
-
-
-[Lastest update]
-2020.09. 02 Tue copy
-
-[version]
-ver 1.0 batch 8, epoch 5
-ver 1.1 batch 8, epoch 10
-ver 1.2 batch 8, epoch 20
-ver 1.3 batch 4, epoch 5
-ver 2.1 batch 8 epoch 5, skeletonize(external data)
-
-ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
-
-==================================================
-'''
-
-epoch_count = 5
-version = "3.1"
-data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'       # original
-TRAIN = 'Train'
-VAL = 'Validation'
-TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_20_ver1.2.pth"
-
 
 
 print(torch.cuda.is_available())
@@ -106,7 +62,7 @@ class Net(nn.Module):
 
         self.avg_pool = nn.AvgPool2d(7)
         #512 1 1
-        self.classifier = nn.Linear(512, 52)
+        self.classifier = nn.Linear(512, 35)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
         self.fc2 = nn.Linear(4096,4096)
@@ -257,6 +213,15 @@ def test():
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
 
+def model_loader():
+    model_folder = '/home/mll/v_mll3/OCR_data/VGG_character/model'
+    model_list = os.listdir(model_folder)
+    print("---------------Select model ------------")
+    for i in range(0 , len(model_list)):
+        print("{} : {}".format(i,  model_list[i]))
+    num = input()
+    model_dir = model_folder+ '/'+ model_list[int(num)]
+    #print(model_dir)
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -329,6 +294,7 @@ while(s != "1" or s !="2"):
 
 
     elif s=="2":
+        model_loader()
         net = Net()
         net.load_state_dict(torch.load(save_path))
         net.to(device)
@@ -345,6 +311,7 @@ while(s != "1" or s !="2"):
 
 
     elif s=="3":
+        model_loader()
         net = Net()
         net.load_state_dict(torch.load(save_path))
         net.to(device)
@@ -364,9 +331,13 @@ while(s != "1" or s !="2"):
 print("-----------------------")
 
 
+
+
 #해결필요함.
 print("Test in real case")
 sample_case_path = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/sample_test'
+
+
 
 
 def image_loader(loader, image_name):

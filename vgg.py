@@ -17,18 +17,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 
-
 '''
 ==================================================
 
-
+* beta version *
 
 [Based network]
  Pytorch VGG19
 
 [Dataset] 
 v1.x English single character set(external data)
-v2.x
+
+v2.x skeletonized external data
 
 v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
 
@@ -39,7 +39,7 @@ v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → d
 
 
 [Lastest update]
-2020.09. 02 Tue 
+2020.09. 02 Tue copy
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -47,11 +47,24 @@ ver 1.1 batch 8, epoch 10
 ver 1.2 batch 8, epoch 20
 ver 1.3 batch 4, epoch 5
 ver 2.1 batch 8 epoch 5, skeletonize(external data)
+ver 2.2 batch 8 epoch 10, skeletonize(external data)
 
-ver 3.0 batch 4. epoch 5, dataset6
+ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
 ==================================================
 '''
+
+epoch_count = 10
+version = "2.2"
+
+#data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'       # original
+TRAIN = 'Train'
+VAL = 'Validation'
+TEST = 'Test'
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
+
+
 
 print(torch.cuda.is_available())
 
@@ -134,6 +147,17 @@ def imshow(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
+def model_loader():
+    model_folder = '/home/mll/v_mll3/OCR_data/VGG_character/model'
+    model_list = os.listdir(model_folder)
+    print("---------------Select model ------------")
+    for i in range(0 , len(model_list)):
+        print("{} : {}".format(i,  model_list[i]))
+    num = input()
+    model_dir = model_folder+ '/'+ model_list[int(num)]
+    #print(model_dir)
+
+# VGG-16 Takes 224x2
 
 def train():
     criterion = nn.CrossEntropyLoss().cuda()
@@ -246,12 +270,7 @@ def test():
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
 
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'       # original
-TRAIN = 'Train'
-VAL = 'Validation'
-TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_20_ver1.2.pth"
+
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -292,18 +311,6 @@ dataloaders = {
 }
 
 
-# ==================#
-#  ver1.0 : epoch =5, batch 8
-#  ver1.1 : epoch =10, batch 8
-#  ver1.2 : epoch =20, batch 8
-#  ver1.3 : epoch = 5, batch 4
-#  ver2.1 : epoch = 5 ,batch 8 , skeletonize
-
-epoch_count = 5
-version = "2.1"
-
-
-
 dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
 
 for x in [TRAIN, VAL, TEST]:
@@ -332,7 +339,7 @@ while(s != "1" or s !="2"):
 
     elif s=="2":
         net = Net()
-        net.load_state_dict(torch.load(save_path))
+        net.load_state_dict(torch.load(model_loader()))
         net.to(device)
 
         param = list(net.parameters())
@@ -348,7 +355,7 @@ while(s != "1" or s !="2"):
 
     elif s=="3":
         net = Net()
-        net.load_state_dict(torch.load(save_path))
+        net.load_state_dict(torch.load(model_loader()))
         net.to(device)
 
         param = list(net.parameters())
