@@ -6,14 +6,16 @@ import os
 # generate answer txt file same name.
 
 
-log_path = './log_high.txt'
-file_dir = '/home/mll/v_mll3/OCR_data/인식100데이터셋/'
+log_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/log_high.txt'
+file_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/word단위_with_label/result_model_mlt25k_ic15_recogtitiontrainset_new/'
 
 file = open(log_path, mode='rt')
 isinstance(file, collections.Iterable)
 
 for line in file:
-    #print(line)
+    #print("[",line,"]")
+    if(line=="\n"):
+        break;
     str = line.split("\t")[0]
     answer = line.split("\t")[1]
     print(str)
