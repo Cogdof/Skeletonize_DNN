@@ -3,11 +3,15 @@ import shutil
 
 from PIL import Image
 
+#-----------------------------------------
+#last update : 8.6
 # save crop img, img's label txt
+# make crop image sort
+#------------------------------------------
 
-path = '/home/mll/v_mll3/OCR_data/워드단위로추출된데이터셋/result_model_mlt25k_ic15_recogtitiontrainset/'                  #기존 파일이 저장되어 있는 디렉토리
-imagePath = '/home/mll/v_mll3/OCR_data/dataset/IC15/word recognition/training set/ch4_training_word_images_gt/' # bounadary가 없는 원본이미지 경로
-newPath = '/home/mll/v_mll3/OCR_data/워드단위로추출된데이터셋/result_model_mlt25k_ic15_recogtitiontrainset_no_box/'           #새 파일들을 저장할 디렉토리
+path = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/word_to_skeletonize/craft_normal_skeletonize/result_total_test_wordbox_seperate'                  #기존 파일이 저장되어 있는 디렉토리
+imagePath = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/word_to_skeletonize/normal_skeletonize/result_total_test_wordbox_seperate' # bounadary가 없는 원본이미지 경로
+newPath = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/character_by_word_to_skeletonize/skeletonize/result_total_test_wordbox_seperate'           #새 파일들을 저장할 디렉토리
 
 file_list = os.listdir(path)                    #기존 파일 디렉토리에서 파일 목록 생성
 img_list = os.listdir(imagePath)
@@ -41,27 +45,21 @@ for i in file_list_txt:                         #텍스트 파일 열기
 
     #j = j.replace("txt","jpg")
    # img = Image.open(imagePath + "/" + i.replace("res_", ""))
-    img = Image.open(imagePath + "/" +j.replace("txt", "png"))
+    img = Image.open(imagePath + "/" +j.replace("txt", "jpg"))      # png or jpg
     fileNum = 1                                 #새로 생성될 파일 넘버링
 
-    for line in lines:
+    for line in lines2:
         #print(line)
         fileName = i[:-4] + "_" + str(fileNum) + ".txt"
         imageName = i[:-4] + "_" + str(fileNum) + ".jpg"
         fw = open(newPath+"/"+fileName, "a")
-        fw.write(line)
+        get_list = line.copy()
+        get_list = list(map(str,get_list))
+        line_write = ",".join(get_list)
+        fw.write(line_write)
         fw.close()
 
-        line = line.split(',')
-        #line = line.split('\t')
-        #line.remove(line[0])
-        line[6] = line[6].replace('\n','')
-        #line[7] = line[7].replace('\n', '')
 
-        line = list(map(int, line))
-        #if (int(lines[2])):
-        #    area = (int(lines[1]), int(lines[2]), int(lines[5]), int(lines[6]))
-        #else :
         line_x = []
         line_y = []
         line_x.append(line[0])

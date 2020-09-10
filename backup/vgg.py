@@ -42,7 +42,7 @@ version sequence also change..
 
 
 
-[Lastest backup]
+[Lastest update]
 2020.09.09 thu 
 
 [version]
@@ -50,21 +50,25 @@ ver 1.0 batch 8, epoch 5
 ver 1.1 batch 8, epoch 10
 ver 1.2 batch 8, epoch 20
 ver 1.3 batch 4, epoch 5
+
 ver 2.1 batch 8 epoch 5, skeletonize(external data)
 ver 2.2 batch 8 epoch 10, skeletonize(external data)
 ver 2.3 batch 4, epoch 10, skeletonize(external data)
-
+ver 2.4 batch 4, epoch 5, skeletonize(external data).
+    change f1,f2,f3 layers
+    
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
 ==================================================
 '''
 
 epoch_count = 10
-version = "2.3"
+version = "1.4"
 batch = 4
 
-data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'       # original
+#data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
+# data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
+data_dir ='/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -82,7 +86,23 @@ transform = transforms.Compose([
 ])
 
 
+#---------------------------------------
+vector_set = []
+for i in range(35): vector_set.append([])
+print(vector_set)
+
+
+def last_vector(self):
+    vector_set[self.classifier].append(self)
+
+#--------------------------------------
+
+
 class Net(nn.Module):
+
+    # vector set of classify.
+
+
     def __init__(self):
         super(Net, self).__init__()
         self.conv = nn.Sequential(
@@ -114,6 +134,12 @@ class Net(nn.Module):
 
         self.avg_pool = nn.AvgPool2d(7)
         #512 1 1
+
+
+        #print(self)
+        #last vector
+        #self.last_vector = self
+
         self.classifier = nn.Linear(512, 35)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
@@ -127,12 +153,21 @@ class Net(nn.Module):
         features = self.conv(x)
         #print(features.size())
         x = self.avg_pool(features)
+        vector = x
         #print(avg_pool.size())
         x = x.view(features.size(0), -1)
         #print(flatten.size())
         x = self.classifier(x)
+        result = x
+
         #x = self.softmax(x)
-        return x, features
+        #result = self.softmax(x)
+        #vector = self.last_vector
+
+        return x, features, result, vector
+
+
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -186,9 +221,20 @@ def train():
             # print(inputs.shape)
             # print(inputs.shape)
             # forward + backward + optimize
-            outputs, f = net(inputs)
+
+            #outputs, f = net(inputs)               # *original
+
+            outputs, f, result, vector = net(inputs)
+
+            #predicted = torch.max(outputs, 1)
+
+            #print(labels)
+            #print(predicted)
+            #print(result)
+            #print(vector)
             # print(outputs.shape)
-            # print(labels.shape)
+            # print(labels.shape)1
+
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -234,7 +280,8 @@ def validation():
             images, labels = data
             images = images.cuda()
             labels = labels.cuda()
-            outputs, _ = net(images)
+            outputs, _, result, vector = net(images)
+            #outputs, _ = net(images)                   #origin
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
             for i in range(len(labels)):
@@ -270,7 +317,8 @@ def test():
             images = images.cuda()
             labels = labels.cuda()
 
-            outputs, f = net(images)
+            outputs, f, result, vector = net(images)
+
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
             for i in range(len(labels)):

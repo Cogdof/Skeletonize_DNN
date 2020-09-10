@@ -32,33 +32,43 @@ v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
 
 v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → dataset
 
+-----------------------------------------------------
+2020.09.08
+
+Data rebuliding...
+version sequence also change..
+
 
 
 
 
 [Lastest update]
-2020.09.03 thu copy
+2020.09.09 thu 
 
 [version]
 ver 1.0 batch 8, epoch 5
 ver 1.1 batch 8, epoch 10
 ver 1.2 batch 8, epoch 20
 ver 1.3 batch 4, epoch 5
+
 ver 2.1 batch 8 epoch 5, skeletonize(external data)
 ver 2.2 batch 8 epoch 10, skeletonize(external data)
 ver 2.3 batch 4, epoch 10, skeletonize(external data)
-
+ver 2.4 batch 4, epoch 5, skeletonize(external data).
+    change f1,f2,f3 layers
+    
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
 ==================================================
 '''
 
 epoch_count = 10
-version = "2.3"
+version = "1.4"
 batch = 4
 
-data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'       # original
+#data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
+# data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
+data_dir ='/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -76,7 +86,23 @@ transform = transforms.Compose([
 ])
 
 
+#---------------------------------------
+vector_set = []
+for i in range(35): vector_set.append([])
+print(vector_set)
+
+
+def last_vector(self):
+    vector_set[self.classifier].append(self)
+
+#--------------------------------------
+
+
 class Net(nn.Module):
+
+    # vector set of classify.
+
+
     def __init__(self):
         super(Net, self).__init__()
         self.conv = nn.Sequential(
@@ -108,6 +134,12 @@ class Net(nn.Module):
 
         self.avg_pool = nn.AvgPool2d(7)
         #512 1 1
+
+
+        #print(self)
+        #last vector
+        #self.last_vector = self
+
         self.classifier = nn.Linear(512, 35)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
@@ -121,12 +153,21 @@ class Net(nn.Module):
         features = self.conv(x)
         #print(features.size())
         x = self.avg_pool(features)
+        vector = x
         #print(avg_pool.size())
         x = x.view(features.size(0), -1)
         #print(flatten.size())
         x = self.classifier(x)
+        result = x
+
         #x = self.softmax(x)
-        return x, features
+        #result = self.softmax(x)
+        #vector = self.last_vector
+
+        return x, features, result, vector
+
+
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -150,6 +191,7 @@ def imshow(img):
 def model_loader():
     model_folder = '/home/mll/v_mll3/OCR_data/VGG_character/model'
     model_list = os.listdir(model_folder)
+    model_list.sort()
     print("---------------Select model ------------")
     for i in range(0 , len(model_list)):
         print("{} : {}".format(i,  model_list[i]))
@@ -180,9 +222,20 @@ def train():
             # print(inputs.shape)
             # print(inputs.shape)
             # forward + backward + optimize
-            outputs, f = net(inputs)
+
+            #outputs, f = net(inputs)               # *original
+
+            outputs, f, result, vector = net(inputs)
+
+            #predicted = torch.max(outputs, 1)
+
+            #print(labels)
+            #print(predicted)
+            #print(result)
+            #print(vector)
             # print(outputs.shape)
-            # print(labels.shape)
+            # print(labels.shape)1
+
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -216,7 +269,7 @@ def train():
 
     print('Finished Training')
 
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_{}_ver{}.pth".format(epoch_count, version)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ver{}_ep{}_.pth".format(version, epoch_count)
     torch.save(net.state_dict(), save_path)
 
 def validation():
@@ -228,7 +281,8 @@ def validation():
             images, labels = data
             images = images.cuda()
             labels = labels.cuda()
-            outputs, _ = net(images)
+            outputs, _, result, vector = net(images)
+            #outputs, _ = net(images)                   #origin
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
             for i in range(len(labels)):
@@ -238,14 +292,15 @@ def validation():
 
 
     file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/validation_log_{}_ver{}_.txt'.format(epoch_count, version),
+        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_ver{}_ep{}_.txt'.format(version, epoch_count),
         'w')
+    file.write("Label                             correct count  |  total count \n")
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write('Accuracy class_correctof %5s : %2d %%' % (
-            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("\n")
+
+        file.write('Accuracy class_correctof %5s : %2d %%' % (image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
+        file.write("    {0:<7}  |  {0:>7}\n".format(image_datasets[VAL].classes[i], class_total[i]))
 
         total_acc =  total_acc + (100 * class_correct[i] / class_total[i])
 
@@ -264,7 +319,8 @@ def test():
             images = images.cuda()
             labels = labels.cuda()
 
-            outputs, f = net(images)
+            outputs, f, result, vector = net(images)
+
             _, predicted = torch.max(outputs, 1)
             c = (predicted == labels).squeeze()
             for i in range(len(labels)):
@@ -274,16 +330,17 @@ def test():
 
 
     file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/test_log_{}_ver{}_.txt'.format(epoch_count, version),
+        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Test_log_ver{}_ep{}_.txt'.format(version, epoch_count),
         'w')
+    file.write("Label                   correct count  |  total count \n")
     for i in range(label_count):
         print('Accuracy of %5s : %2d %%' % (
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
         file.write('Accuracy of %5s : %2d %%' % (
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("\n")
+        file.write("    {} | {}\n".format(class_correct[i], class_total[i]))
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
-
+        file.write("    {0:<7}  |  {0:>7}\n".format(image_datasets[TEST].classes[i], class_total[i]))
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
     file.write('Accuracy total class : %2d %%' % (total_acc / label_count))

@@ -16,59 +16,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
-import sys
 
-'''
-==================================================
-[Based network]
- Pytorch VGG19
-
-[Dataset] 
-v1.x English single character set(external data)
-
-v2.x skeletonized external data
-
-v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
-
-v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → dataset
-
------------------------------------------------------
-2020.09.08
-
-Data rebuliding...
-version sequence also change..
-
-
-
-
-
-[Lastest backup]
-2020.09.09 thu 
-
-[version]
-ver 1.0 batch 8, epoch 5
-ver 1.1 batch 8, epoch 10
-ver 1.2 batch 8, epoch 20
-ver 1.3 batch 4, epoch 5
-ver 2.1 batch 8 epoch 5, skeletonize(external data)
-ver 2.2 batch 8 epoch 10, skeletonize(external data)
-ver 2.3 batch 4, epoch 10, skeletonize(external data)
-
-ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
-
-==================================================
-'''
-
-epoch_count = 10
-version = "2.3"
-batch = 4
-
-data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'       # original
-TRAIN = 'Train'
-VAL = 'Validation'
-TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
 
 
 
@@ -153,18 +101,6 @@ def imshow(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
-def model_loader():
-    model_folder = '/home/mll/v_mll3/OCR_data/VGG_character/model'
-    model_list = os.listdir(model_folder)
-    print("---------------Select model ------------")
-    for i in range(0 , len(model_list)):
-        print("{} : {}".format(i,  model_list[i]))
-    num = input()
-    model_dir = model_folder+ '/'+ model_list[int(num)]
-    #print(model_dir)
-    return model_dir
-# VGG-16 Takes 224x2
-
 
 def train():
     criterion = nn.CrossEntropyLoss().cuda()
@@ -242,23 +178,13 @@ def validation():
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
 
-
-    file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/validation_log_{}_ver{}_.txt'.format(epoch_count, version),
-        'w')
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write('Accuracy class_correctof %5s : %2d %%' % (
-            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("\n")
 
         total_acc =  total_acc + (100 * class_correct[i] / class_total[i])
 
     print('Accuracy total class_correct of  : %2d %%' % ( total_acc/label_count) )
-    file.write('Accuracy total class_correct of  : %2d %%' % ( total_acc/label_count) )
-    file.close()
-
 
 def test():
     class_correct = list(0. for i in range(label_count))
@@ -278,22 +204,24 @@ def test():
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
 
-
-    file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/test_log_{}_ver{}_.txt'.format(epoch_count, version),
-        'w')
     for i in range(label_count):
         print('Accuracy of %5s : %2d %%' % (
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write('Accuracy of %5s : %2d %%' % (
-            image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("\n")
+
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
 
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
-    file.write('Accuracy total class : %2d %%' % (total_acc / label_count))
-    file.close()
+
+def model_loader():
+    model_folder = '/home/mll/v_mll3/OCR_data/VGG_character/model'
+    model_list = os.listdir(model_folder)
+    print("---------------Select model ------------")
+    for i in range(0 , len(model_list)):
+        print("{} : {}".format(i,  model_list[i]))
+    num = input()
+    model_dir = model_folder+ '/'+ model_list[int(num)]
+    #print(model_dir)
 
 # VGG-16 Takes 224x224 images as input, so we resize all of them
 data_transforms = {
@@ -327,11 +255,16 @@ image_datasets = {
 
 dataloaders = {
     x: torch.utils.data.DataLoader(
-        image_datasets[x], batch_size=batch,        #origin ver batch= 4 | ver1 batch=2 | ver2  batch=8  | ver batch=4
+        image_datasets[x], batch_size=8,        #origin ver batch= 4 | ver1 batch=2 | ver2  batch=8  | ver batch=4
         shuffle=True, num_workers=4
     )
     for x in [TRAIN, VAL, TEST]
 }
+
+
+
+
+
 
 
 dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
@@ -361,8 +294,9 @@ while(s != "1" or s !="2"):
 
 
     elif s=="2":
+        model_loader()
         net = Net()
-        net.load_state_dict(torch.load(model_loader()))
+        net.load_state_dict(torch.load(save_path))
         net.to(device)
 
         param = list(net.parameters())
@@ -373,13 +307,13 @@ while(s != "1" or s !="2"):
         validation()
         print("-----------------------")
         test()
-
         break
 
 
     elif s=="3":
+        model_loader()
         net = Net()
-        net.load_state_dict(torch.load(model_loader()))
+        net.load_state_dict(torch.load(save_path))
         net.to(device)
 
         param = list(net.parameters())
@@ -395,13 +329,15 @@ while(s != "1" or s !="2"):
 
 
 print("-----------------------")
-print("Done.")
 
 
-'''
+
+
 #해결필요함.
 print("Test in real case")
 sample_case_path = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/sample_test'
+
+
 
 
 def image_loader(loader, image_name):
@@ -418,8 +354,6 @@ data_transforms2 = transforms.Compose([
     transforms.ToTensor(),
 ])
 print(net(image_loader(data_transforms2, sample_case_path+"/Test/1.jpg")))
-'''
-
 '''
 with torch.no_grad():
 
