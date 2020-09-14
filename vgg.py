@@ -87,13 +87,7 @@ transform = transforms.Compose([
 
 
 #---------------------------------------
-vector_set = []
-for i in range(35): vector_set.append([])
-print(vector_set)
 
-
-def last_vector(self):
-    vector_set[self.classifier].append(self)
 
 #--------------------------------------
 
@@ -153,10 +147,11 @@ class Net(nn.Module):
         features = self.conv(x)
         #print(features.size())
         x = self.avg_pool(features)
-        vector = x
+        #vector = x
         #print(avg_pool.size())
         x = x.view(features.size(0), -1)
         #print(flatten.size())
+        vector = x
         x = self.classifier(x)
         result = x
 
@@ -275,6 +270,9 @@ def train():
 def validation():
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
+    class_vector = list([] for i in range(label_count))
+    class_result = list([] for i in range(label_count))
+
     total_acc = 0
     with torch.no_grad():
         for data in dataloaders[VAL]:
@@ -289,24 +287,52 @@ def validation():
                 label = labels[i]
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
+                class_vector[label].append(vector)
+                class_result[label].append(result)
 
 
-    file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_ver{}_ep{}_.txt'.format(version, epoch_count),
-        'w')
-    file.write("Label                             correct count  |  total count \n")
+    # log file save
+    file = open('/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_ver{}_ep{}_.txt'.format(version, epoch_count),'w')
+
+    # vector, result save path.
+    newPath = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Valid_log_vector,result_ver{}_ep{}'.format(version, epoch_count)
+    if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
+        os.makedirs(os.path.join(newPath))
+
+
+
+    file.write("Label                               correct count  |  total count \n")
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
 
         file.write('Accuracy class_correctof %5s : %2d %%' % (image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("    {0:<7}  |  {0:>7}\n".format(image_datasets[VAL].classes[i], class_total[i]))
+        file.write("    {0:<10}".format(class_correct[i]))
+        file.write("| {0:<10} \n".format(class_total[i]))
 
+        # vector log file save
+        file2 = open('{}/Valid_vector_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i], version, epoch_count), 'w')
+
+        # result log file save
+        file3 = open('{}/Valid_result_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i], version, epoch_count), 'w')
+
+
+        for j in range(len(class_vector[i])):
+            file2.write(str(class_vector[i][j]))
+            file3.write(str(class_result[i][j]))
+
+            file2.write("\n")
+            file3.write("\n")
+
+        file2.close()
+        file3.close()
         total_acc =  total_acc + (100 * class_correct[i] / class_total[i])
 
     print('Accuracy total class_correct of  : %2d %%' % ( total_acc/label_count) )
     file.write('Accuracy total class_correct of  : %2d %%' % ( total_acc/label_count) )
     file.close()
+    file2.close()
+    file3.close()
 
 
 def test():
@@ -338,9 +364,10 @@ def test():
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
         file.write('Accuracy of %5s : %2d %%' % (
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
-        file.write("    {} | {}\n".format(class_correct[i], class_total[i]))
+        file.write("    {0:<10}".format(class_correct[i]))
+        file.write("| {0:<10} \n".format(class_total[i]))
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
-        file.write("    {0:<7}  |  {0:>7}\n".format(image_datasets[TEST].classes[i], class_total[i]))
+
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
     file.write('Accuracy total class : %2d %%' % (total_acc / label_count))
