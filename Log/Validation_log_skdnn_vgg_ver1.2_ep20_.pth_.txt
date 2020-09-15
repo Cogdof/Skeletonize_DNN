@@ -1,0 +1,38 @@
+Label                               correct count  |  total count 
+Accuracy class_correctof     0 : 99 %    356.0     | 358.0      
+Accuracy class_correctof     1 : 97 %    1618.0    | 1665.0     
+Accuracy class_correctof     2 : 99 %    1247.0    | 1257.0     
+Accuracy class_correctof     3 : 99 %    1288.0    | 1291.0     
+Accuracy class_correctof     4 : 98 %    1254.0    | 1267.0     
+Accuracy class_correctof     5 : 97 %    1347.0    | 1378.0     
+Accuracy class_correctof     6 : 98 %    1563.0    | 1584.0     
+Accuracy class_correctof     7 : 98 %    178.0     | 180.0      
+Accuracy class_correctof     8 : 98 %    1175.0    | 1188.0     
+Accuracy class_correctof     9 : 99 %    1176.0    | 1185.0     
+Accuracy class_correctof     A : 93 %    358.0     | 382.0      
+Accuracy class_correctof     B : 87 %    328.0     | 375.0      
+Accuracy class_correctof     C : 89 %    142.0     | 158.0      
+Accuracy class_correctof     D : 89 %    278.0     | 312.0      
+Accuracy class_correctof     E : 99 %    296.0     | 298.0      
+Accuracy class_correctof     F : 94 %    298.0     | 314.0      
+Accuracy class_correctof     G : 75 %    267.0     | 353.0      
+Accuracy class_correctof     H : 94 %    315.0     | 333.0      
+Accuracy class_correctof     I : 53 %    200.0     | 371.0      
+Accuracy class_correctof     J : 92 %    107.0     | 116.0      
+Accuracy class_correctof     K : 96 %    222.0     | 230.0      
+Accuracy class_correctof     L : 92 %    185.0     | 200.0      
+Accuracy class_correctof     M : 98 %    238.0     | 241.0      
+Accuracy class_correctof     N : 99 %    223.0     | 225.0      
+Accuracy class_correctof     P : 98 %    163.0     | 165.0      
+Accuracy class_correctof     Q : 63 %    252.0     | 395.0      
+Accuracy class_correctof     R : 92 %    331.0     | 356.0      
+Accuracy class_correctof     S : 93 %    148.0     | 158.0      
+Accuracy class_correctof     T : 98 %    370.0     | 374.0      
+Accuracy class_correctof     U : 95 %    190.0     | 200.0      
+Accuracy class_correctof     V : 87 %    187.0     | 214.0      
+Accuracy class_correctof     W : 92 %    159.0     | 172.0      
+Accuracy class_correctof     X : 97 %    106.0     | 109.0      
+Accuracy class_correctof     Y : 84 %    152.0     | 179.0      
+Accuracy class_correctof     Z : 66 %    114.0     | 171.0      
+total correct : 16831 | total count  17754  
+Accuracy total class_correct of  : 91 %
