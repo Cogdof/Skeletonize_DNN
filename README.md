@@ -14,7 +14,7 @@ This model is for performance assistance in cases where the recognition rate is 
 ### Update
 Initial update : **17.08.2020**
  
-Lastest update : **09.09.2020**
+Lastest update : **20.09.2020**
 
 **Now attending...**
 

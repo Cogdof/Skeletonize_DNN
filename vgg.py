@@ -45,7 +45,7 @@ version sequence also change..
 
 
 [Lastest update]
-2020.09.09 thu 
+2020.09.15  Tue 
 
 [version]
 ver 1.0 batch 8, epoch 5
