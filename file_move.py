@@ -1,6 +1,13 @@
 import os
 import shutil
 
+
+'''
+# copy images ans seperate each folder for train/test
+
+'''
+
+
 befor_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize/Train'
 after_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize/Test'
 

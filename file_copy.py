@@ -2,8 +2,13 @@ import collections
 from PIL import Image
 import os
 
-# copy image with recognition over setting threshold (60%)
-# generate answer txt file same name.
+
+
+
+'''
+# # copy image with recognition over setting threshold (60%)
+# # generate answer txt file same name.
+'''
 
 
 log_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/log_high.txt'

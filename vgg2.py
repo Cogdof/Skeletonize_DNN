@@ -1,3 +1,5 @@
+import io
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -42,8 +44,8 @@ version sequence also change..
 
 
 
-[Lastest update]
-2020.09.14 mon 
+[Lastest backup]
+2020.09.21  mon 
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -59,12 +61,17 @@ ver 2.4 batch 4, epoch 5, skeletonize(external data).
 
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
+ver 4.0 VGG(OCR) after VGG(Skeletonized)
+
+
 ==================================================
 '''
 
 epoch_count = 10
 version = "1.4"
 batch = 4
+
+model_name = "skdnn_vgg_ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
@@ -82,14 +89,8 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
+
 # ---------------------------------------
-vector_set = []
-for i in range(35): vector_set.append([])
-print(vector_set)
-
-
-def last_vector(self):
-    vector_set[self.classifier].append(self)
 
 
 # --------------------------------------
@@ -147,10 +148,11 @@ class Net(nn.Module):
         features = self.conv(x)
         # print(features.size())
         x = self.avg_pool(features)
-        vector = x
+        # vector = x
         # print(avg_pool.size())
         x = x.view(features.size(0), -1)
         # print(flatten.size())
+        vector = x
         x = self.classifier(x)
         result = x
 
@@ -192,8 +194,9 @@ def model_loader():
         print("{} : {}".format(i, model_list[i]))
     num = input()
     model_dir = model_folder + '/' + model_list[int(num)]
+    model_name = model_list[int(num)]
     # print(model_dir)
-    return model_dir
+    return model_dir, model_name
 
 
 # VGG-16 Takes 224x2
@@ -263,14 +266,15 @@ def train():
 
     print('Finished Training')
 
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/skdnn_vgg_ver{}_ep{}_.pth".format(version, epoch_count)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_.pth".format(model_name)
     torch.save(net.state_dict(), save_path)
 
 
 def validation():
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
-    class_vector = list(0. for i in range(label_count))
+    class_vector = list([] for i in range(label_count))
+    class_result = list([] for i in range(label_count))
 
     total_acc = 0
     with torch.no_grad():
@@ -286,34 +290,61 @@ def validation():
                 label = labels[i]
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
+                class_vector[label].append(vector)
+                class_result[label].append(result)
 
     # log file save
-    file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_ver{}_ep{}_.txt'.format(version,
-                                                                                                            epoch_count),
-        'w')
+    file = open('/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_{}_.txt'.format(model_name),
+                'w')
 
-    # vector log file save
-    file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Valid_vector_log_ver{}_ep{}_.txt'.format(version,
-                                                                                                              epoch_count),
-        'w')
+    # vector, result save path.
+    newPath = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Valid_log_vector,result_{}'.format(
+        model_name)
+    if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
+        os.makedirs(os.path.join(newPath))
 
     file.write("Label                               correct count  |  total count \n")
+    total_count = 0
+    correct_count = 0
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
-
+        total_count = total_count + class_total[i]
+        correct_count = correct_count + class_correct[i]
         file.write('Accuracy class_correctof %5s : %2d %%' % (
         image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
         file.write("    {0:<10}".format(class_correct[i]))
         file.write("| {0:<10} \n".format(class_total[i]))
 
+        # vector log file save
+        file2 = open('{}/Valid_vector_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i]), 'w')
+        torch.save(vector, "{}/Valid_vector_label[{}]_.pt".format(newPath, image_datasets[VAL].classes[i]))
+        file3 = open(
+            '{}/Valid_result_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i], version, epoch_count), 'w')
+        vector2 = vector.tolist()
+
+        # result log file save
+
+        for j in range(len(class_vector[i])):
+            file3.write(str(class_result[i][j]))
+            file3.write("\n")
+
+        for j in vector2:
+            for k in j:
+                file2.write(str(k) + " ")
+            file2.write("\n\n")
+
+        file2.close()
+        file3.close()
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
 
     print('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
+    file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
     file.write('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
+
     file.close()
+    file2.close()
+    file3.close()
 
 
 def test():
@@ -336,10 +367,11 @@ def test():
                 class_total[label] += 1
 
     file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Test_log_ver{}_ep{}_.txt'.format(version,
-                                                                                                      epoch_count),
+        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Test_log_{}_.txt'.format(model_name),
         'w')
     file.write("Label                   correct count  |  total count \n")
+    total_count = 0
+    correct_count = 0
     for i in range(label_count):
         print('Accuracy of %5s : %2d %%' % (
             image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
@@ -348,9 +380,12 @@ def test():
         file.write("    {0:<10}".format(class_correct[i]))
         file.write("| {0:<10} \n".format(class_total[i]))
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
+        total_count = total_count + class_total[i]
+        correct_count = correct_count + class_correct[i]
 
     print('Accuracy total class : %2d %%' % (total_acc / label_count))
-    file.write('Accuracy total class : %2d %%' % (total_acc / label_count))
+    file.write('Accuracy total class : %2d %% \n' % (total_acc / label_count))
+    file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
     file.close()
 
 
@@ -420,7 +455,8 @@ while (s != "1" or s != "2"):
 
     elif s == "2":
         net = Net()
-        net.load_state_dict(torch.load(model_loader()))
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
         net.to(device)
 
         param = list(net.parameters())
@@ -437,7 +473,8 @@ while (s != "1" or s != "2"):
 
     elif s == "3":
         net = Net()
-        net.load_state_dict(torch.load(model_loader()))
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
         net.to(device)
 
         param = list(net.parameters())
@@ -454,45 +491,6 @@ print("-----------------------")
 print("Done.")
 
 '''
-#해결필요함.
-print("Test in real case")
-sample_case_path = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/sample_test'
-
-
-def image_loader(loader, image_name):
-
-    image = Image.open(image_name)
-    image = loader(image)
-    image = torch.tensor(image, requires_grad=True)
-    image = image.unsqueeze(0)
-    return image
-
-data_transforms2 = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-])
-print(net(image_loader(data_transforms2, sample_case_path+"/Test/1.jpg")))
-'''
-
-'''
-with torch.no_grad():
-
-    images = images.cuda()
-    labels = labels.cuda()
-
-    outputs, f = net(images)
-    _, predicted = torch.max(outputs, 1)
-    c = (predicted == labels).squeeze()
-    for i in range(len(labels)):
-        label = labels[i]
-
-    #print(images)
-    print("target :  ",labels)
-    #print("recognition :  ", _)
-    #print(c)
-    print("Recognition  : " , class_names[predicted])
-
 
 '''
 

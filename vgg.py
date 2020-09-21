@@ -45,7 +45,7 @@ version sequence also change..
 
 
 [Lastest update]
-2020.09.15  Tue 
+2020.09.21  mon 
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -60,6 +60,9 @@ ver 2.4 batch 4, epoch 5, skeletonize(external data).
     change f1,f2,f3 layers
     
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
+
+ver 4.0 VGG(OCR) after VGG(Skeletonized)
+
 
 ==================================================
 '''
@@ -499,45 +502,6 @@ print("Done.")
 
 
 '''
-#해결필요함.
-print("Test in real case")
-sample_case_path = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/sample_test'
-
-
-def image_loader(loader, image_name):
-
-    image = Image.open(image_name)
-    image = loader(image)
-    image = torch.tensor(image, requires_grad=True)
-    image = image.unsqueeze(0)
-    return image
-
-data_transforms2 = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-])
-print(net(image_loader(data_transforms2, sample_case_path+"/Test/1.jpg")))
-'''
-
-'''
-with torch.no_grad():
-
-    images = images.cuda()
-    labels = labels.cuda()
-
-    outputs, f = net(images)
-    _, predicted = torch.max(outputs, 1)
-    c = (predicted == labels).squeeze()
-    for i in range(len(labels)):
-        label = labels[i]
-
-    #print(images)
-    print("target :  ",labels)
-    #print("recognition :  ", _)
-    #print(c)
-    print("Recognition  : " , class_names[predicted])
-
 
 '''
 
