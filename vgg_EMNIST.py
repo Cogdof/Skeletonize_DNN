@@ -19,8 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 import sys
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
+
 '''
 ==================================================
 [Based network]
@@ -62,7 +61,7 @@ ver 2.4 batch 4, epoch 5, skeletonize(external data).
 
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
-ver 4.0 VGG 26+26+10 case,digit distinguish re train
+ver 4.0 VGG 26+26+10 case,digit of EMNIST dataset.
 
 
 ==================================================
@@ -71,7 +70,7 @@ ver 4.0 VGG 26+26+10 case,digit distinguish re train
 epoch_count = 10
 version = "4.0"
 batch = 4
-label = 35
+label = 62
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
 
@@ -79,8 +78,7 @@ model_name = "OCR_vgg_ver" + version + "_ep" + str(epoch_count) + "_batch" + str
 
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-#data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data'
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'        # emnist
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -95,26 +93,10 @@ transform = transforms.Compose([
 ])
 
 
-'''
-# data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/'
-TRAIN = 'Train'
-VAL = 'Validation'
-TEST = 'Test'
-save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
+# ---------------------------------------
 
-input_size = 28
-batch_size = 64
 
-train_data_dir = data_dir+"emnist-byclass-train.csv"
-test_data_dir = data_dir+"emnist-byclass-test.csv"
-
-train_data = pd.read_csv(train_data_dir)
-test_data = pd.read_csv(test_data_dir)
-
-print(train_data.shape)
-print(test_data.shape)
-'''
+# --------------------------------------
 
 
 class Net(nn.Module):
@@ -432,43 +414,31 @@ data_transforms = {
     ])
 }
 
+image_datasets = {
+    x: datasets.ImageFolder(
+        os.path.join(data_dir, x),
+        transform=data_transforms[x]
+    )
+    for x in [TRAIN, VAL, TEST]
+}
 
-class MNISTDataset(torch.utils.data.Dataset):
-    def __init__(self, file_path):
-        self.file = file_path
-        self.data = pd.read_csv(file_path, dtype=np.float32)
-        self.label = self.data.label.values
-        self.len = len(self.label)
-        self.data = self.data.values[:, 1:] / 255
+dataloaders = {
+    x: torch.utils.data.DataLoader(
+        image_datasets[x], batch_size=batch,  # origin ver batch= 4 | ver1 batch=2 | ver2  batch=8  | ver batch=4
+        shuffle=True, num_workers=4
+    )
+    for x in [TRAIN, VAL, TEST]
+}
 
-    def __getitem__(self, index):
-        return self.data[index], self.label[index]
+dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
 
-    def __len__(self):
-        return self.len
+for x in [TRAIN, VAL, TEST]:
+    print("Loaded {} images under {}".format(dataset_sizes[x], x))
 
-
-train_csv = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Train/emnist-byclass-train.csv'
-test_csv = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Test/emnist-byclass-test.csv'
-
-train_dataloader = torch.utils.data.DataLoader(
-    MNISTDataset(train_csv), batch_size=batch, shuffle=True, num_workers=4
-)
-
-test_dataloader = torch.utils.data.DataLoader(
-    MNISTDataset(test_csv), batch_size=batch, shuffle=True, num_workers=4
-)
-
-#csv_dataset_sizes = {x: len(train_dataloader[x]) for x in [TRAIN,TEST]}
-
-
-print("Loaded {} images under {}".format(train_dataloader,train_csv))
-print("Loaded {} images under {}".format(test_dataloader,test_csv))
 print("Classes: ")
-class_names = train_dataloader.classes
-label_count = len(train_dataloader.classes)
-print(train_dataloader.classes)
-
+class_names = image_datasets[TRAIN].classes
+label_count = len(image_datasets[TRAIN].classes)
+print(image_datasets[TRAIN].classes)
 
 s = 't'
 while (s != "1" or s != "2"):
@@ -522,3 +492,11 @@ while (s != "1" or s != "2"):
 
 print("-----------------------")
 print("Done.")
+
+'''
+
+'''
+
+# functions to show an image
+
+print("Done!")

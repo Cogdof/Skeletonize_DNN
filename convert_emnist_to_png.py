@@ -17,7 +17,7 @@ from PIL import Image
 # Structre
 -----------------------------
 Train | Test
-    /1 / {num}_{label}.jpg
+    /1 / {num}_{label}.jpg .....
     /2 
     ...
     /A
@@ -43,13 +43,13 @@ warnings.filterwarnings("ignore")
 
 #train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/test.csv') # test csv case
 train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-train.csv')
-test = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-test.csv')
+#test = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-test.csv')
 
 print(train.shape)
-print(test.shape)
+#print(test.shape)
 
 train_dir =  '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Train/'
-test_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Test/'
+#test_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Test/'
 
 i = 0
 for x in train._get_values:
@@ -74,29 +74,32 @@ for x in train._get_values:
     i= i+1
 
     gc.collect()
-train_case = i
-gc.collect()
-i = 0
 
+gc.collect()
+
+'''
+i = 0
 for x in test._get_values:
 
 
     label = chr(mapping(x[0]))
     vector = x[1:]
     img = vector.reshape(28, 28).astype(int)
-    path = train_dir +"/"+ label
+    path = test_dir +"/"+ label
     if not (os.path.isdir(path)):  # 새  파일들을 저장할 디렉토리를 생성
         os.makedirs(os.path.join(path))
+
+    img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    img = cv2.flip(img, 1)
     cv2.imwrite(path+"/{}_{}.jpg".format(i,label) , img)
     i = i+1
     gc.collect()
-test_case = i
 
-# create folder
 
-# save
+'''
+
 
 # gc
 gc.collect()
-print("{} | {} case.".format(train_case, test_case))
+
 print("Done!")

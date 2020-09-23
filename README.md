@@ -14,7 +14,7 @@ This model is for performance assistance in cases where the recognition rate is 
 ### Update
 Initial update : **17.08.2020**
  
-Lastest update : **20.09.2020**
+Lastest update : **22.09.2020**
 
 **Now attending...**
 
@@ -23,7 +23,7 @@ Lastest update : **20.09.2020**
 - Pytorch 
 - VGGNet
 - Skeletonize
-
+- OCR
 
 
 ### Dataset
@@ -33,6 +33,7 @@ Lastest update : **20.09.2020**
 - CTW1500
 - Synth text data set
 - TotalText
+- EMNIST
 
 
   
