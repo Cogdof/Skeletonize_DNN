@@ -32,7 +32,8 @@ v2.x skeletonized external data
 
 v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
 
-v4.x Skeletonized_word_to_char_dataset7 : Skeletonize Pass_word_dataset4,  → dataset
+v4.x EMNIST OCR 62 label dataset *
+
 
 -----------------------------------------------------
 2020.09.08
@@ -45,7 +46,7 @@ version sequence also change..
 
 
 [Lastest update]
-2020.09.22  Tue 
+2020.09.23  Wed 
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -61,15 +62,15 @@ ver 2.4 batch 4, epoch 5, skeletonize(external data).
 
 ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 
-ver 4.0 VGG 26+26+10 case,digit of EMNIST dataset.
-
+ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
+ver 4.1 batch 16 epoch 10
 
 ==================================================
 '''
 
 epoch_count = 10
-version = "4.0"
-batch = 4
+version = "4.1"
+batch = 16
 label = 62
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
@@ -83,7 +84,7 @@ TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
 save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
-
+log_path = '/home/mll/v_mll3/OCR_data/VGG_character/Log/'
 print(torch.cuda.is_available())
 
 transform = transforms.Compose([
@@ -297,12 +298,11 @@ def validation():
                 class_result[label].append(result)
 
     # log file save
-    file = open('/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Validation_log_{}_.txt'.format(model_name),
+    file = open('{}/Validation_log_{}_.txt'.format(log_path ,model_name),
                 'w')
 
     # vector, result save path.
-    newPath = '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Valid_log_vector,result_{}'.format(
-        model_name)
+    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
         os.makedirs(os.path.join(newPath))
 
@@ -370,7 +370,7 @@ def test():
                 class_total[label] += 1
 
     file = open(
-        '/home/mll/v_mll3/OCR_data/VGG_character/Skeletonize_DNN/Log/Test_log_{}_.txt'.format(model_name),
+        '{} Test_log_{}_.txt'.format(log_path, model_name),
         'w')
     file.write("Label                   correct count  |  total count \n")
     total_count = 0
