@@ -36,7 +36,7 @@ v4.x EMNIST OCR 62 label dataset *
 
 
 -----------------------------------------------------
-2020.09.08
+2020.09.28 mon
 
 Data rebuliding...
 version sequence also change..
@@ -65,12 +65,13 @@ ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
 ver 4.1 batch 16 epoch 10
 ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
+ver 4.3 batch 4 epoch 2(test), resize244 to 784, working fc layer
 
 ==================================================
 '''
 
 epoch_count = 10
-version = "4.2"
+version = "4.3"
 batch = 4
 label = 62
 #   ver1 ~ 3 (26+10)
@@ -137,16 +138,18 @@ class Net(nn.Module):
         self.avg_pool = nn.AvgPool2d(7)
         # 512 1 1
 
-        # print(self)
-        # last vector
-        # self.last_vector = self
 
-        self.classifier = nn.Linear(512, label)
+        #self.classifier = nn.Linear(512, label)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
         self.fc2 = nn.Linear(4096,4096)
         self.fc3 = nn.Linear(4096,10)
         """
+        self.fc1 = nn.Linear(512 * 2 * 2, 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        self.fc3 = nn.Linear(4096, 512)
+
+        self.classifier = nn.Linear(512, label)
 
     def forward(self, x):
         # print(x.size())
