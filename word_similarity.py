@@ -5,7 +5,12 @@ from PIL import Image
 import Levenshtein
 '''
 #-----------------------------------------
-MJ dataset gt generate
+20.09.28
+
+Compare pred score and gt.
+Get Similarity score to use at performance at connected network
+
+
 #------------------------------------------
 '''
 gt_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/image/[IC13]Challenge2_Test'                  #기존 파일이 저장되어 있는 디렉토리
