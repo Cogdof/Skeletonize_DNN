@@ -65,13 +65,13 @@ ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
 ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
 ver 4.1 batch 16 epoch 10
 ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
-ver 4.3 batch 4 epoch 2(test), resize244 to 784, working fc layer
-
+ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
+ver 4.4 batch 4 epoch 20 resize 7845, fc3
 ==================================================
 '''
 
-epoch_count = 10
-version = "4.3"
+epoch_count = 20
+version = "4.4"
 batch = 4
 label = 62
 #   ver1 ~ 3 (26+10)
