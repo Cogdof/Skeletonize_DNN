@@ -2,9 +2,11 @@ import os
 import shutil
 
 '''
-# Split label to get single char label...
-# target : Deep-text - good case words set -> character split set
-# 
+
+classify single character synth data.
+
+to each folder.
+
 
 
 '''

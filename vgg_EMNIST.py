@@ -66,12 +66,13 @@ ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
 ver 4.1 batch 16 epoch 10
 ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
 ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
-ver 4.4 batch 4 epoch 20 resize 7845, fc3
+ver 4.4 batch 4 epoch 20 resize 784, fc3
+ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 ==================================================
 '''
 
-epoch_count = 20
-version = "4.4"
+epoch_count = 30
+version = "4.5"
 batch = 4
 label = 62
 #   ver1 ~ 3 (26+10)
@@ -90,7 +91,7 @@ log_path = '/home/mll/v_mll3/OCR_data/VGG_character/Log/'
 print(torch.cuda.is_available())
 
 transform = transforms.Compose([
-    transforms.Resize(784),         #transforms.Resize(224),
+    transforms.Resize(224),         #transforms.Resize(224),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
