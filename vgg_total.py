@@ -25,49 +25,26 @@ import sys
 [Based network]
  Pytorch VGG19
 
-[Dataset] 
-v1.x English single character set(external data)
-
-v2.x skeletonized external data
-
-v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
-
-v4.x EMNIST OCR 62 label dataset *
-
-
------------------------------------------------------
-2020.09.28 mon
-
-Data rebuliding...
-version sequence also change..
-
-
-
-
 
 [Lastest update]
 2020.10.07  Wed 
 
-[version]
-ver 1.0 batch 8, epoch 5
-ver 1.1 batch 8, epoch 10
-ver 1.2 batch 8, epoch 20
-ver 1.3 batch 4, epoch 5
-
-ver 2.1 batch 8 epoch 5, skeletonize(external data)
-ver 2.2 batch 8 epoch 10, skeletonize(external data)
-ver 2.3 batch 4, epoch 10, skeletonize(external data)
-ver 2.4 batch 4, epoch 5, skeletonize(external data).
-    change f1,f2,f3 layers
-
-ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
-
-ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
-ver 4.1 batch 16 epoch 10
-ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
-ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
-ver 4.4 batch 4 epoch 20 resize 784, fc3
+[VGG-OCR version]
+base : VGG19
 ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
+
+[SKDNN version]
+ver 1.0 : init version
+
+
+
+[Structure]
+
+Input : class 62 (alphabet + digit), skeletonized single character data 
+model ver :  VGG_OCR v4.5
+mid output : vecter matrix of input char data
+model : SKDNN v1.x
+Output : pred label
 
 ==================================================
 '''
