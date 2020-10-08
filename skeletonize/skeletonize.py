@@ -33,8 +33,10 @@ for target_folder in path_list:
 
 
     for i in range(0,len(files)):
-        #img = cv2.imread(files[i], cv2.IMREAD_GRAYSCALE)
-        img = cv2.imread(files[i], cv2.IMREAD_COLOR)
+        img = cv2.imread(files[i], cv2.IMREAD_GRAYSCALE)
+        #img = cv2.imread(files[i], cv2.IMREAD_COLOR)
+        #img = cv2.cvtColor(img,cv2.COLOR_BAYER_BG2GRAY)
+
         thr = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 3)
         blur = cv2.GaussianBlur(thr, (3, 3), 0)
         image = invert(img_as_bool(blur))
@@ -55,7 +57,9 @@ for target_folder in path_list:
         if not (os.path.isdir(result_path)):  # 새  파일들을 저장할 디렉토리를 생성
             os.makedirs(os.path.join(result_path))
         output_dir = result_path + files_dir[9]
-        io.imsave(output_dir, img_as_uint(out))
+        #io.imsave(output_dir, img_as_uint(out))
+        print()
+        cv2.imwrite(output_dir,out)
         '''
         f, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1, 5)
         ax0.imshow(img, cmap='gray')

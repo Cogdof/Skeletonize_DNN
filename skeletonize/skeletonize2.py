@@ -29,7 +29,8 @@ for folder in file_list:
                     break
 
     print('Find {} images'.format(len(files)))
-    print('working on {} folder '.format(path))
+    print('working on {} '.format(path+"/"+folder))
+    print("------------------")
     #str=input()
 
     for i in range(0,len(files)):
