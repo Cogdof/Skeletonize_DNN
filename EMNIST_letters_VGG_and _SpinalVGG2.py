@@ -12,7 +12,6 @@ import torch.nn as nn
 import math
 import torch.nn.functional as F
 import numpy as np
-import os
 
 num_epochs = 200
 batch_size_train = 100
@@ -241,131 +240,48 @@ curr_lr1 = learning_rate
 
 curr_lr2 = learning_rate
 
-model_ver = 5.0
+model1 = VGG().to(device)
 
-def train():
-    model1 = VGG().to(device)
-    model2 = SpinalVGG().to(device)
+model2 = SpinalVGG().to(device)
 
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer1 = torch.optim.Adam(model1.parameters(), lr=learning_rate)
-    optimizer2 = torch.optim.Adam(model2.parameters(), lr=learning_rate)
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer1 = torch.optim.Adam(model1.parameters(), lr=learning_rate)
+optimizer2 = torch.optim.Adam(model2.parameters(), lr=learning_rate)
 
-    # Train the model
-    total_step = len(train_loader)
+# Train the model
+total_step = len(train_loader)
 
-    best_accuracy1 = 0
-    best_accuracy2 = 0
-    for epoch in range(num_epochs):
-        for i, (images, labels) in enumerate(train_loader):
-            images = images.to(device)
-            labels = labels.to(device)
+best_accuracy1 = 0
+best_accuracy2 = 0
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        images = images.to(device)
+        labels = labels.to(device)
 
-            # Forward pass
-            outputs = model1(images)
-            loss1 = criterion(outputs, labels)
+        # Forward pass
+        outputs = model1(images)
+        loss1 = criterion(outputs, labels)
 
-            # Backward and optimize
-            optimizer1.zero_grad()
-            loss1.backward()
-            optimizer1.step()
+        # Backward and optimize
+        optimizer1.zero_grad()
+        loss1.backward()
+        optimizer1.step()
 
-            outputs = model2(images)
-            loss2 = criterion(outputs, labels)
+        outputs = model2(images)
+        loss2 = criterion(outputs, labels)
 
-            # Backward and optimize
-            optimizer2.zero_grad()
-            loss2.backward()
-            optimizer2.step()
+        # Backward and optimize
+        optimizer2.zero_grad()
+        loss2.backward()
+        optimizer2.step()
 
-            if i == 499:
-                print("Ordinary Epoch [{}/{}], Step [{}/{}] Loss: {:.4f}"
-                      .format(epoch + 1, num_epochs, i + 1, total_step, loss1.item()))
-                print("Spinal Epoch [{}/{}], Step [{}/{}] Loss: {:.4f}"
-                      .format(epoch + 1, num_epochs, i + 1, total_step, loss2.item()))
+        if i == 499:
+            print("Ordinary Epoch [{}/{}], Step [{}/{}] Loss: {:.4f}"
+                  .format(epoch + 1, num_epochs, i + 1, total_step, loss1.item()))
+            print("Spinal Epoch [{}/{}], Step [{}/{}] Loss: {:.4f}"
+                  .format(epoch + 1, num_epochs, i + 1, total_step, loss2.item()))
 
-        # Test the model
-        model1.eval()
-        model2.eval()
-        with torch.no_grad():
-            correct1 = 0
-            total1 = 0
-            correct2 = 0
-            total2 = 0
-            for images, labels in test_loader:
-                images = images.to(device)
-                labels = labels.to(device)
-
-                outputs = model1(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total1 += labels.size(0)
-                correct1 += (predicted == labels).sum().item()
-
-                outputs = model2(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total2 += labels.size(0)
-                correct2 += (predicted == labels).sum().item()
-
-            if best_accuracy1 >= correct1 / total1:
-                curr_lr1 = learning_rate * np.asscalar(pow(np.random.rand(1), 3))
-                update_lr(optimizer1, curr_lr1)
-                print('Test Accuracy of NN: {} % Best: {} %'.format(100 * correct1 / total1, 100 * best_accuracy1))
-            else:
-                best_accuracy1 = correct1 / total1
-                net_opt1 = model1
-                print('Test Accuracy of NN: {} % (improvement)'.format(100 * correct1 / total1))
-
-            if best_accuracy2 >= correct2 / total2:
-                curr_lr2 = learning_rate * np.asscalar(pow(np.random.rand(1), 3))
-                update_lr(optimizer2, curr_lr2)
-                print(
-                    'Test Accuracy of SpinalNet: {} % Best: {} %'.format(100 * correct2 / total2, 100 * best_accuracy2))
-            else:
-                best_accuracy2 = correct2 / total2
-                net_opt2 = model2
-                print('Test Accuracy of SpinalNet: {} % (improvement)'.format(100 * correct2 / total2))
-
-            model1.train()
-            model2.train()
-
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/vgg5_{}_.pth".format(model_ver)
-    torch.save(model1.state_dict(), save_path)
-
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/spinal_{}_.pth".format(model_ver)
-    torch.save(model2.state_dict(), save_path)
-
-def eval():
-    model1 = VGG()
-    model2 = SpinalVGG()
-
-    model_list = os.listdir("/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/")
-
-    for save_model in model_list:
-        print(save_model)
-
-    load_model = input()
-
-    save_path1 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/vgg5_{}_.pth".format(load_model)
-    save_path2 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/spinal_{}_.pth".format(load_model)
-
-    model1.load_state_dict(torch.load(save_path1))
-    model2.load_state_dict(torch.load(save_path2))
-
-    model1.to(device)
-    model2.to(device)
-
-    print(device)
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer1 = torch.optim.Adam(model1.parameters(), lr=learning_rate)
-    optimizer2 = torch.optim.Adam(model2.parameters(), lr=learning_rate)
-
-    # Train the model
-    total_step = len(train_loader)
-
-    best_accuracy1 = 0
-    best_accuracy2 = 0
     # Test the model
     model1.eval()
     model2.eval()
@@ -400,23 +316,19 @@ def eval():
         if best_accuracy2 >= correct2 / total2:
             curr_lr2 = learning_rate * np.asscalar(pow(np.random.rand(1), 3))
             update_lr(optimizer2, curr_lr2)
-            print(
-                'Test Accuracy of SpinalNet: {} % Best: {} %'.format(100 * correct2 / total2, 100 * best_accuracy2))
+            print('Test Accuracy of SpinalNet: {} % Best: {} %'.format(100 * correct2 / total2, 100 * best_accuracy2))
         else:
             best_accuracy2 = correct2 / total2
             net_opt2 = model2
             print('Test Accuracy of SpinalNet: {} % (improvement)'.format(100 * correct2 / total2))
 
-
-print("1: train 2: load model")
-model_choose = input()
-
-if model_choose==1:
-    train()
-
-elif model_choose==2:
-    eval()
-else:
-    print("wrong input")
+        model1.train()
+        model2.train()
 
 
+model_ver= 5.0
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/vgg5_{}_.pth".format(model_ver)
+torch.save(model1.state_dict(), save_path)
+
+save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/spinal_{}_.pth".format(model_ver)
+torch.save(model2.state_dict(), save_path)
