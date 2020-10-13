@@ -42,13 +42,13 @@ def mapping(a):
 warnings.filterwarnings("ignore")
 
 #train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/test.csv') # test csv case
-train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-train.csv')
+train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/archive/emnist-balanced-train.csv')
 #test = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-test.csv')
 
 print(train.shape)
 #print(test.shape)
 
-train_dir =  '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Train/'
+train_dir =  '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced/Train/'
 #test_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Test/'
 
 i = 0
@@ -73,7 +73,7 @@ for x in train._get_values:
     #print(i)
     i= i+1
 
-    gc.collect()
+    #gc.collect()
 
 gc.collect()
 

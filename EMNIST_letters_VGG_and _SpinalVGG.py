@@ -14,6 +14,19 @@ import torch.nn.functional as F
 import numpy as np
 import os
 
+'''
+------------------------------
+[Lastest update]
+2020.10.12 Mon 
+
+[version]
+ver 5.0 Data : Balanced(47 classes) |  Acc  VGG-5 :90.8 , spiral : 90.7  
+ver 5.1 Data : byclasee(62 classes)
+
+---------------
+'''
+
+
 num_epochs = 200
 batch_size_train = 100
 batch_size_test = 1000
@@ -21,8 +34,10 @@ learning_rate = 0.005
 momentum = 0.5
 log_interval = 500
 
+model_ver = 5.1
+
 train_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='balanced', train=True, download=True,
+    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='byclass', train=True, download=True,
                                 transform=torchvision.transforms.Compose([
                                     torchvision.transforms.RandomPerspective(),
                                     torchvision.transforms.RandomRotation(10, fill=(0,)),
@@ -33,7 +48,7 @@ train_loader = torch.utils.data.DataLoader(
     batch_size=batch_size_train, shuffle=True)
 
 test_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='balanced', train=False, download=True,
+    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='byclass', train=False, download=True,
                                 transform=torchvision.transforms.Compose([
                                     torchvision.transforms.ToTensor(),
                                     torchvision.transforms.Normalize(
@@ -41,10 +56,35 @@ test_loader = torch.utils.data.DataLoader(
                                 ])),
     batch_size=batch_size_test, shuffle=True)
 
+
+realcase_loader = torch.utils.data.DataLoader(
+    torchvision.datasets.ImageFolder(root='/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Validation',
+                                transform=torchvision.transforms.Compose([
+                                    torchvision.transforms.Grayscale(1),
+                                    torchvision.transforms.ToTensor(),
+                                    torchvision.transforms.Normalize(
+                                        (0.1307,), (0.3081,))
+                                ])), batch_size=10, shuffle=True
+
+)
+
+custom_transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
+custom_dataset = torchvision.datasets.ImageFolder('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data/Validation',
+                                                  transform= custom_transform)
+custom_loader = torch.utils.data.DataLoader(custom_dataset, batch_size=10, shuffle = True)
+
+
+
 examples = enumerate(test_loader)
 batch_idx, (example_data, example_targets) = next(examples)
-
 print(example_data.shape)
+
+print("----------------")
+examples2 = enumerate(realcase_loader)
+batch_idx2, (example_data2, example_targets2) = next(examples2)
+print(example_data2.shape)
+
+print("label : ", realcase_loader.dataset.classes)
 
 import matplotlib.pyplot as plt
 
@@ -225,9 +265,21 @@ class SpinalVGG(nn.Module):
 
         return F.log_softmax(x, dim=1)
 
-
+#-------------------------------------------------------------------------
 device = 'cuda'
+# setting device on GPU if available, else CPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Using device:', device)
+print()
 
+#Additional Info when using cuda
+if device.type == 'cuda':
+    print(torch.cuda.get_device_name(0))
+    print('Memory Usage:')
+    print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+    print('Cached:   ', round(torch.cuda.memory_cached(0)/1024**3,1), 'GB')
+
+#-------------------------------------------------------------
 
 # For updating learning rate
 def update_lr(optimizer, lr):
@@ -241,7 +293,7 @@ curr_lr1 = learning_rate
 
 curr_lr2 = learning_rate
 
-model_ver = 5.0
+
 
 def train():
     model1 = VGG().to(device)
@@ -362,7 +414,6 @@ def eval():
     optimizer2 = torch.optim.Adam(model2.parameters(), lr=learning_rate)
 
     # Train the model
-    total_step = len(train_loader)
 
     best_accuracy1 = 0
     best_accuracy2 = 0
@@ -407,16 +458,95 @@ def eval():
             net_opt2 = model2
             print('Test Accuracy of SpinalNet: {} % (improvement)'.format(100 * correct2 / total2))
 
+def eval_outputcase(output_dataset):
+    print("--- eval_realcase ---")
+    model1 = VGG()
+    model2 = SpinalVGG()
 
-print("1: train 2: load model")
+    model_list = os.listdir("/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/")
+
+    for save_model in model_list:
+        print(save_model)
+
+    load_model = input()
+
+    save_path1 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/vgg5_{}_.pth".format(load_model)
+    save_path2 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/spinal_{}_.pth".format(load_model)
+
+    model1.load_state_dict(torch.load(save_path1))
+    model2.load_state_dict(torch.load(save_path2))
+
+    model1.to(device)
+    model2.to(device)
+
+    print(device)
+
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer1 = torch.optim.Adam(model1.parameters(), lr=learning_rate)
+    optimizer2 = torch.optim.Adam(model2.parameters(), lr=learning_rate)
+
+    # Train the model
+
+    best_accuracy1 = 0
+    best_accuracy2 = 0
+    # Test the model
+    model1.eval()
+    model2.eval()
+    with torch.no_grad():
+        print("-")
+        correct1 = 0
+        total1 = 0
+        correct2 = 0
+        total2 = 0
+        for images, labels in output_dataset:
+            images = images.to(device)
+            labels = labels.to(device)
+
+            outputs = model1(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total1 += labels.size(0)
+            correct1 += (predicted == labels).sum().item()
+
+            outputs = model2(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total2 += labels.size(0)
+            correct2 += (predicted == labels).sum().item()
+
+        if best_accuracy1 >= correct1 / total1:
+            curr_lr1 = learning_rate * np.asscalar(pow(np.random.rand(1), 3))
+            update_lr(optimizer1, curr_lr1)
+            print('Test Accuracy of NN: {} % Best: {} %'.format(100 * correct1 / total1, 100 * best_accuracy1))
+        else:
+            best_accuracy1 = correct1 / total1
+            net_opt1 = model1
+            print('Test Accuracy of NN: {} % (improvement)'.format(100 * correct1 / total1))
+
+        if best_accuracy2 >= correct2 / total2:
+            curr_lr2 = learning_rate * np.asscalar(pow(np.random.rand(1), 3))
+            update_lr(optimizer2, curr_lr2)
+            print(
+                'Test Accuracy of SpinalNet: {} % Best: {} %'.format(100 * correct2 / total2, 100 * best_accuracy2))
+        else:
+            best_accuracy2 = correct2 / total2
+            net_opt2 = model2
+            print('Test Accuracy of SpinalNet: {} % (improvement)'.format(100 * correct2 / total2))
+
+
+
+print("1: train |  2: load model  |  3: realcase eval")
 model_choose = input()
 
-if model_choose==1:
+if model_choose=="1":
     train()
 
-elif model_choose==2:
+elif model_choose=="2":
     eval()
+
+elif model_choose=="3":
+    eval_outputcase(realcase_loader)
+
 else:
     print("wrong input")
 
-
+print("Done!")
