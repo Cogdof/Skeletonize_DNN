@@ -29,7 +29,7 @@ Train | Test
 
 
 # mapping label to alphabet for digit
-def mapping(a):
+def mapping62(a):
     if a <= 9:
         return a + 48
     elif 10 <= a and a <= 35:
@@ -37,25 +37,41 @@ def mapping(a):
     elif 36 <= a :
         return a + 61
 
+def mapping47(a):
+    if a <= 9:
+        return a + 48
+    elif 10 <= a and a <= 35:
+        return a + 55
+    elif 36 <= a and a<= 37:
+        return a + 61
+    elif 38 <= a and a<= 42:
+        return a+62
+    elif a==43: return 110
+    elif 44<= a and a<=45:
+        return a+69
+    elif a==46: return 116
+
+
 
 
 warnings.filterwarnings("ignore")
 
 #train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/test.csv') # test csv case
-train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/archive/emnist-balanced-train.csv')
-#test = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-byclass-test.csv')
+train = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/archive/emnist-balanced-test.csv')
+#test = pd.read_csv('/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/emnist-balanced-test.csv')
 
 print(train.shape)
 #print(test.shape)
 
-train_dir =  '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced/Train/'
-#test_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Test/'
+train_dir =  '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced/Test/'
+#test_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced/Test/'
+
 
 i = 0
 for x in train._get_values:
 
 
-    label = chr(mapping(x[0]))
+    label = chr(mapping47(x[0]))
     vector = x[1:]
     #print(label)
     #print(vector)

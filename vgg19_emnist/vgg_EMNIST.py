@@ -69,23 +69,28 @@ ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
 ver 4.4 batch 4 epoch 20 resize 784, fc3
 ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 
-ver 5.0 batch 10, epoch 10, test of pretrained model of vgg-5
+ver 4.6 batch 10 epoch 30 resize 224 balanced 
+[EMNIST_Letter_vgg and spinalVGG.py]
+ver 5.0 
+ver 5.1
+
+
 
 ==================================================
 '''
 
 epoch_count = 10
-version = "5.0"
+version = "5.2"
 batch = 10
-label = 62
+label = 47
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
-
+#   ver4 47 = 26+10 + 11
 model_name = "Ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'        # emnist
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'        # emnist
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -219,7 +224,7 @@ class Net(nn.Module):
         # 512 1 1
 
 
-        #self.classifier = nn.Linear(512, label)
+        self.classifier = nn.Linear(512, label)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
         self.fc2 = nn.Linear(4096,4096)
@@ -227,7 +232,7 @@ class Net(nn.Module):
         
         
         self.classifier = nn.Linear(512, label)
-        """
+        
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5),
             nn.Linear(256, 512),
@@ -236,7 +241,7 @@ class Net(nn.Module):
             nn.Dropout(p=0.5),
             nn.Linear(512, label),
         )
-
+        """
 
     def forward(self, x):
         # print(x.size())
@@ -262,7 +267,7 @@ print(device)
 print("1: vgg19 | 2: vgg-5")
 
 model_choose = input()
-if model_choose==1:
+if model_choose=="1":
 
     net = Net()
     net = net.to(device)
@@ -313,7 +318,7 @@ def model_loader():
 
 def train():
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = optim.Adam(net.parameters(), lr=0.00001)  # origin  lr =0.00001
+    optimizer = optim.Adam(net.parameters(), lr=0.0005)  # origin  lr =0.00001
     train_size = dataset_sizes[TRAIN]
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3

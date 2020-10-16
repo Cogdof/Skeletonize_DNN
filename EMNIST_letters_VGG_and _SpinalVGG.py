@@ -13,16 +13,25 @@ import math
 import torch.nn.functional as F
 import numpy as np
 import os
-
+from PIL import Image, ImageOps
 '''
 ------------------------------
 [Lastest update]
-2020.10.12 Mon 
+2020.10.16 fri 
 
 [version]
 ver 5.0 Data : Balanced(47 classes) |  Acc  VGG-5 :90.8 , spiral : 90.7  
-ver 5.1 Data : byclasee(62 classes)
+ver 5.1 Data : byclasee(62 classes) - fail
+ver 5.2 data : balanced, net vgg19
 
+
+Dataset - 1 http://www.robots.ox.ac.uk/~vgg/data/text/#sec-chars
+@InProceedings{Jaderberg14,
+  author       = "Max Jaderberg and Andrea Vedaldi and Andrew Zisserman",
+  title        = "Deep Features for Text Spotting",
+  booktitle    = "European Conference on Computer Vision",
+  year         = "2014",
+}
 ---------------
 '''
 
@@ -36,8 +45,10 @@ log_interval = 500
 
 model_ver = 5.1
 
+#split = balanced(47), byclass (62)
+
 train_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='byclass', train=True, download=True,
+    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='balanced', train=True, download=True,
                                 transform=torchvision.transforms.Compose([
                                     torchvision.transforms.RandomPerspective(),
                                     torchvision.transforms.RandomRotation(10, fill=(0,)),
@@ -48,7 +59,7 @@ train_loader = torch.utils.data.DataLoader(
     batch_size=batch_size_train, shuffle=True)
 
 test_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='byclass', train=False, download=True,
+    torchvision.datasets.EMNIST('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/files/', split='balanced', train=False, download=True,
                                 transform=torchvision.transforms.Compose([
                                     torchvision.transforms.ToTensor(),
                                     torchvision.transforms.Normalize(
@@ -58,15 +69,13 @@ test_loader = torch.utils.data.DataLoader(
 
 
 realcase_loader = torch.utils.data.DataLoader(
-    torchvision.datasets.ImageFolder(root='/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass/Validation',
+    torchvision.datasets.ImageFolder(root='/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced/Valid/',
                                 transform=torchvision.transforms.Compose([
                                     torchvision.transforms.Grayscale(1),
                                     torchvision.transforms.ToTensor(),
                                     torchvision.transforms.Normalize(
                                         (0.1307,), (0.3081,))
-                                ])), batch_size=10, shuffle=True
-
-)
+                                ])), batch_size=1000, shuffle=True, num_workers= 4)
 
 custom_transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
 custom_dataset = torchvision.datasets.ImageFolder('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/data/Validation',
@@ -266,7 +275,7 @@ class SpinalVGG(nn.Module):
         return F.log_softmax(x, dim=1)
 
 #-------------------------------------------------------------------------
-device = 'cuda'
+#device = 'cuda'
 # setting device on GPU if available, else CPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Using device:', device)
@@ -478,8 +487,18 @@ def eval_outputcase(output_dataset):
 
     model1.to(device)
     model2.to(device)
+    print(len(output_dataset))
 
-    print(device)
+
+    param = list(model1.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    print("----------------")
+    param2 = list(model2.parameters())
+    print(len(param))
+    for i in param2:
+        print(i.shape)
 
 
     criterion = nn.CrossEntropyLoss()
@@ -534,7 +553,7 @@ def eval_outputcase(output_dataset):
 
 
 
-print("1: train |  2: load model  |  3: realcase eval")
+print("1: train |  2: load model  |  3: realcase eval |  4: test sample case")
 model_choose = input()
 
 if model_choose=="1":
@@ -545,6 +564,50 @@ elif model_choose=="2":
 
 elif model_choose=="3":
     eval_outputcase(realcase_loader)
+
+elif model_choose=="4":
+
+    model1 = VGG()
+    model2 = SpinalVGG()
+
+    model_list = os.listdir("/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/")
+
+    for save_model in model_list:
+        print(save_model)
+
+    load_model = input()
+
+    save_path1 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/vgg5_{}_.pth".format(load_model)
+    save_path2 = "/home/mll/v_mll3/OCR_data/VGG_character/model/vgg_spinal/spinal_{}_.pth".format(load_model)
+
+    model1.load_state_dict(torch.load(save_path1))
+    model2.load_state_dict(torch.load(save_path2))
+
+    model1.to(device)
+    model2.to(device)
+
+    sample_dir = "/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/sample/"
+    sample_list = os.listdir(sample_dir)
+    for file in sample_list:
+        target_img = Image.open(sample_dir + file, 'r')
+        target_img = ImageOps.grayscale(target_img)
+
+        transform_realcase = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(
+                (0.1307,), (0.3081,))])
+
+        target = transform_realcase(target_img)
+
+        outputs1 = model1(target)
+        _, predicted1 = torch.max(outputs1.data, 1)
+
+        outputs2 = model2(target)
+        _, predicted2 = torch.max(outputs2.data, 1)
+
+        print(file, "prediction :")
+        print("VGG-5 : ", predicted1)
+        print("spiral : ", predicted2)
 
 else:
     print("wrong input")
