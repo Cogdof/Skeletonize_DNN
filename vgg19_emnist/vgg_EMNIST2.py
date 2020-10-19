@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
-from PIL import Image
+from PIL import Image, ImageOps
 from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 import sys
+import math
 
 '''
 ==================================================
@@ -46,8 +47,7 @@ version sequence also change..
 
 
 [Lastest update]
-2020.10.12  mon
-backup at 13:00 
+2020.10.19 mon backup
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -70,39 +70,124 @@ ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
 ver 4.4 batch 4 epoch 20 resize 784, fc3
 ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 
+ver 4.6 batch 10 epoch 30 resize 224 balanced 
+[EMNIST_Letter_vgg and spinalVGG.py]
+ver 5.0 
+ver 5.1
+
+
+
 ==================================================
 '''
 
-epoch_count = 30
-version = "4.5"
-batch = 4
-label = 62
+epoch_count = 100
+version = "5.3"
+batch = 16
+label = 47
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
-
-model_name = "OCR_vgg_ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
+#   ver4 47 = 26+10 + 11
+model_name = "Ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'        # emnist
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
 save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
 log_path = '/home/mll/v_mll3/OCR_data/VGG_character/Log/'
 print(torch.cuda.is_available())
-
+'''
 transform = transforms.Compose([
-    transforms.Resize(224),         #transforms.Resize(224),
+    transforms.Resize(784),         #transforms.Resize(224),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
+'''
 
 
 # ---------------------------------------
 
 
 # --------------------------------------
+class VGG(nn.Module):
+    """
+    Based on - https://github.com/kkweon/mnist-competition
+    from: https://github.com/ranihorev/Kuzushiji_MNIST/blob/master/KujuMNIST.ipynb
+    """
+
+    def two_conv_pool(self, in_channels, f1, f2):
+        s = nn.Sequential(
+            nn.Conv2d(in_channels, f1, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(f1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(f1, f2, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(f2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        for m in s.children():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+        return s
+
+    def three_conv_pool(self, in_channels, f1, f2, f3):
+        s = nn.Sequential(
+            nn.Conv2d(in_channels, f1, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(f1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(f1, f2, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(f2),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(f2, f3, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(f3),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        for m in s.children():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+        return s
+
+    def __init__(self, num_classes=62):
+        super(VGG, self).__init__()
+        self.l1 = self.two_conv_pool(1, 64, 64)  # 1 -> 3
+        self.l2 = self.two_conv_pool(64, 128, 128)
+        self.l3 = self.three_conv_pool(128, 256, 256, 256)
+        self.l4 = self.three_conv_pool(256, 256, 256, 256)
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Linear(256, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5),
+            nn.Linear(512, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.l1(x)
+        x = self.l2(x)
+        x = self.l3(x)
+        x = self.l4(x)
+        x = x.view(x.size(0), -1)
+        # print(flatten.size())
+        vector = x
+        x = self.classifier(x)
+        return F.log_softmax(x, dim=1), vector
+
+
+Half_width = 128
+layer_width = 128
 
 
 class Net(nn.Module):
@@ -141,28 +226,31 @@ class Net(nn.Module):
         self.avg_pool = nn.AvgPool2d(7)
         # 512 1 1
 
-
-        #self.classifier = nn.Linear(512, label)
+        self.classifier = nn.Linear(512, label)
         """
         self.fc1 = nn.Linear(512*2*2,4096)
         self.fc2 = nn.Linear(4096,4096)
         self.fc3 = nn.Linear(4096,10)
-        """
-        self.fc1 = nn.Linear(512 * 2 * 2, 4096)
-        self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, 512)
+
 
         self.classifier = nn.Linear(512, label)
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Linear(256, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5),
+            nn.Linear(512, label),
+        )
+        """
 
     def forward(self, x):
         # print(x.size())
         features = self.conv(x)
         # print(features.size())
         x = self.avg_pool(features)
-        # vector = x
-        # print(avg_pool.size())
         x = x.view(features.size(0), -1)
-        # print(flatten.size())
         vector = x
         x = self.classifier(x)
         result = x
@@ -176,12 +264,29 @@ class Net(nn.Module):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
-net = Net()
-net = net.to(device)
-param = list(net.parameters())
-print(len(param))
-for i in param:
-    print(i.shape)
+
+print("1: vgg19 | 2: vgg-5")
+
+model_choose = input()
+if model_choose == "1":
+
+    net = Net()
+    net = net.to(device)
+    param = list(net.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type = "vgg19"
+
+else:
+
+    net = VGG()
+    net = net.to(device)
+    param = list(net.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type = "vgg5"
 
 
 # print(param[0].shape)
@@ -235,15 +340,6 @@ def train():
 
             outputs, f, result, vector = net(inputs)
 
-            # predicted = torch.max(outputs, 1)
-
-            # print(labels)
-            # print(predicted)
-            # print(result)
-            # print(vector)
-            # print(outputs.shape)
-            # print(labels.shape)1
-
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -277,7 +373,7 @@ def train():
 
     print('Finished Training')
 
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_.pth".format(model_name)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_{}_.pth".format(model_type, model_name)
     torch.save(net.state_dict(), save_path)
 
 
@@ -305,7 +401,7 @@ def validation():
                 class_result[label].append(result)
 
     # log file save
-    file = open('{}/Validation_log_{}_.txt'.format(log_path ,model_name),
+    file = open('{}/Validation_log_{}_.txt'.format(log_path, model_name),
                 'w')
 
     # vector, result save path.
@@ -322,7 +418,7 @@ def validation():
         total_count = total_count + class_total[i]
         correct_count = correct_count + class_correct[i]
         file.write('Accuracy class_correctof %5s : %2d %%' % (
-        image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
+            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
         file.write("    {0:<10}".format(class_correct[i]))
         file.write("| {0:<10} \n".format(class_total[i]))
 
@@ -399,25 +495,45 @@ def test():
     file.close()
 
 
+def test2():
+    with torch.no_grad():
+        for data in sample_loader[sample]:
+            images, labels = data
+            images = images.cuda()
+            # labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            print("label : {} | output : {}".format(labels, outputs))
+
+
+# for vgg_19
 # VGG-16 Takes 224x224 images as input, so we resize all of them
+
+
 data_transforms = {
     TRAIN: transforms.Compose([
         # Data augmentation is a good practice for the train set
         # Here, we randomly crop the image to 224x224 and
         # randomly flip it horizontally.
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
+        transforms.Resize(224),
+        # transforms.CenterCrop(224),
         transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     VAL: transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(224),
+        # transforms.CenterCrop(224),
         transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     TEST: transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(224),
+        # transforms.CenterCrop(224),
         transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
 }
 
@@ -438,6 +554,7 @@ dataloaders = {
 }
 
 dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
+data_shape = image_datasets[TRAIN]
 
 for x in [TRAIN, VAL, TEST]:
     print("Loaded {} images under {}".format(dataset_sizes[x], x))
@@ -448,7 +565,7 @@ label_count = len(image_datasets[TRAIN].classes)
 print(image_datasets[TRAIN].classes)
 
 s = 't'
-while (s != "1" or s != "2"):
+while (s != "1" or s != "2" or s != "3"):
     print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case ] ")
     s = input()
     if s == "1":
@@ -492,18 +609,30 @@ while (s != "1" or s != "2"):
         for i in param:
             print(i.shape)
         print("-----------------------")
-        break;
+
+        sample_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/sample/'
+        sample_list = os.listdir(sample_dir)
+
+        for i in sample_list:
+            img = Image.open("{}/{}".format(sample_dir, i))
+            if (img.mode == "L"):
+                img = img.convert("RGB")
+
+            img_label = i.split("_")[1][0]
+            predicted = 0
+            img = data_transforms[TEST](img)
+            img = img.unsqueeze(0)
+            image = img.cuda()
+            net.eval()
+            outputs, f, result, vector = net(image)
+            _, predicted = torch.max(outputs, 1)
+            print("file {} :  label : {} | predict: {}".format(i, img_label, class_names[predicted]))
+
+        break
 
     else:
         print("check command")
 
 print("-----------------------")
-print("Done.")
-
-'''
-
-'''
-
-# functions to show an image
 
 print("Done!")

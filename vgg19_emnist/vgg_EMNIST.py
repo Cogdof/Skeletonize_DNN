@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
-from PIL import Image
+from PIL import Image, ImageOps
 from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ version sequence also change..
 
 
 [Lastest update]
-2020.10.12 Mon 
+2020.10.19 Mon 
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -60,8 +60,6 @@ ver 2.3 batch 4, epoch 10, skeletonize(external data)
 ver 2.4 batch 4, epoch 5, skeletonize(external data).
     change f1,f2,f3 layers
 
-ver b3.0 batch 4. epoch 5, dataset6 (label : 52 a~z, A~Z, non numberic)
-
 ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
 ver 4.1 batch 16 epoch 10
 ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
@@ -70,19 +68,24 @@ ver 4.4 batch 4 epoch 20 resize 784, fc3
 ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 
 ver 4.6 batch 10 epoch 30 resize 224 balanced 
+
 [EMNIST_Letter_vgg and spinalVGG.py]
-ver 5.0 
-ver 5.1
+ver 5.0 spinalnet + vgg5 with EMNIST byclass
+ver 5.1 spinalnet + vgg5 with EMNIST balance      Valid : 90 | test : 24 
 
+Final model : 
 
+[VGG19]
+ver 5.3 VGG19 , batch 16, epoch 10 resize 224, with EMNIST balance       Valid : 90% | test : 24%
+ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass           Valid : 77% | test : 76%
 
 ==================================================
 '''
 
-epoch_count = 10
-version = "5.2"
-batch = 10
-label = 47
+epoch_count = 100
+version = "5.3"
+batch = 16
+label = 0
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
 #   ver4 47 = 26+10 + 11
@@ -97,98 +100,83 @@ TEST = 'Test'
 save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/"
 log_path = '/home/mll/v_mll3/OCR_data/VGG_character/Log/'
 print(torch.cuda.is_available())
-
+'''
 transform = transforms.Compose([
-    transforms.Resize(224),         #transforms.Resize(224),
+    transforms.Resize(784),         #transforms.Resize(224),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
-
+'''
 
 # ---------------------------------------
 
 
 # --------------------------------------
-class VGG(nn.Module):
-    """
-    Based on - https://github.com/kkweon/mnist-competition
-    from: https://github.com/ranihorev/Kuzushiji_MNIST/blob/master/KujuMNIST.ipynb
-    """
-
-    def two_conv_pool(self, in_channels, f1, f2):
-        s = nn.Sequential(
-            nn.Conv2d(in_channels, f1, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(f1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(f1, f2, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(f2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+class Net2(nn.Module):
+    label = 62
+    def __init__(self):
+        super(Net2, self).__init__()
+        self.conv = nn.Sequential(
+            # 3 224 128
+            nn.Conv2d(3, 64, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(64, 64, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.MaxPool2d(2, 2),
+            # 64 112 64
+            nn.Conv2d(64, 128, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(128, 128, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.MaxPool2d(2, 2),
+            # 128 56 32
+            nn.Conv2d(128, 256, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(256, 256, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(256, 256, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.MaxPool2d(2, 2),
+            # 256 28 16
+            nn.Conv2d(256, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(512, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(512, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.MaxPool2d(2, 2),
+            # 512 14 8
+            nn.Conv2d(512, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(512, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.Conv2d(512, 512, 3, padding=1), nn.LeakyReLU(0.2),
+            nn.MaxPool2d(2, 2)
         )
-        for m in s.children():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-        return s
+        # 512 7 4
 
-    def three_conv_pool(self, in_channels, f1, f2, f3):
-        s = nn.Sequential(
-            nn.Conv2d(in_channels, f1, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(f1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(f1, f2, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(f2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(f2, f3, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(f3),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-        )
-        for m in s.children():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-        return s
+        self.avg_pool = nn.AvgPool2d(7)
+        # 512 1 1
 
-    def __init__(self, num_classes=62):
-        super(VGG, self).__init__()
-        self.l1 = self.two_conv_pool(1, 64, 64)     # 1 -> 3
-        self.l2 = self.two_conv_pool(64, 128, 128)
-        self.l3 = self.three_conv_pool(128, 256, 256, 256)
-        self.l4 = self.three_conv_pool(256, 256, 256, 256)
+        #self.classifier = nn.Linear(512, label)
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5),
-            nn.Linear(256, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, num_classes),
-        )
+        self.fc1 = nn.Linear(512*2*2,4096)
+        self.fc2 = nn.Linear(4096,4096)
+        self.fc3 = nn.Linear(4096,512)
+
+
+        self.classifier = nn.Linear(512, label)
+
+
 
     def forward(self, x):
-        x = self.l1(x)
-        x = self.l2(x)
-        x = self.l3(x)
-        x = self.l4(x)
-        x = x.view(x.size(0), -1)
-        # print(flatten.size())
+        # print(x.size())
+        features = self.conv(x)
+        # print(features.size())
+        x = self.avg_pool(features)
+        x = x.view(features.size(0), -1)
         vector = x
         x = self.classifier(x)
-        return F.log_softmax(x, dim=1), vector
+        result = x
+
+        # x = self.softmax(x)
+        # result = self.softmax(x)
+        # vector = self.last_vector
+
+        return x, features, result, vector
 
 
-Half_width = 128
-layer_width = 128
 
 class Net(nn.Module):
-
+    label = 47
     # vector set of classify.
 
     def __init__(self):
@@ -264,11 +252,11 @@ class Net(nn.Module):
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-print("1: vgg19 | 2: vgg-5")
+print("1: vgg19_1[47] | 2: vgg19_2[62]")
 
 model_choose = input()
 if model_choose=="1":
-
+    label = 47
     net = Net()
     net = net.to(device)
     param = list(net.parameters())
@@ -278,8 +266,8 @@ if model_choose=="1":
     model_type = "vgg19"
 
 else:
-
-    net = VGG()
+    label = 62
+    net = Net2()
     net = net.to(device)
     param = list(net.parameters())
     print(len(param))
@@ -318,7 +306,7 @@ def model_loader():
 
 def train():
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = optim.Adam(net.parameters(), lr=0.0005)  # origin  lr =0.00001
+    optimizer = optim.Adam(net.parameters(), lr=0.00001)  # origin  lr =0.00001
     train_size = dataset_sizes[TRAIN]
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -337,15 +325,6 @@ def train():
             # outputs, f = net(inputs)               # *original
 
             outputs, f, result, vector = net(inputs)
-
-            # predicted = torch.max(outputs, 1)
-
-            # print(labels)
-            # print(predicted)
-            # print(result)
-            # print(vector)
-            # print(outputs.shape)
-            # print(labels.shape)1
 
             loss = criterion(outputs, labels)
             loss.backward()
@@ -503,36 +482,32 @@ def test():
 
 
 
-
 #for vgg_19
 # VGG-16 Takes 224x224 images as input, so we resize all of them
+
+
+
 data_transforms = {
     TRAIN: transforms.Compose([
         # Data augmentation is a good practice for the train set
         # Here, we randomly crop the image to 224x224 and
         # randomly flip it horizontally.
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(224),
+        #transforms.CenterCrop(224),
         transforms.ToTensor(),
-
-
-        transforms.Normalize((0.1307,), (0.3081,)),
-
-
+transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     VAL: transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(224),
+        #transforms.CenterCrop(224),
         transforms.ToTensor(),
-
-        transforms.Normalize((0.1307,), (0.3081,)),
-
-
+transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     TEST: transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
+        transforms.Resize(224),
+        #transforms.CenterCrop(224),
         transforms.ToTensor(),
+transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
 }
 
@@ -553,9 +528,12 @@ dataloaders = {
 }
 
 dataset_sizes = {x: len(image_datasets[x]) for x in [TRAIN, VAL, TEST]}
+data_shape = image_datasets[TRAIN]
 
 for x in [TRAIN, VAL, TEST]:
     print("Loaded {} images under {}".format(dataset_sizes[x], x))
+
+
 
 
 print("Classes: ")
@@ -564,7 +542,7 @@ label_count = len(image_datasets[TRAIN].classes)
 print(image_datasets[TRAIN].classes)
 
 s = 't'
-while (s != "1" or s != "2"):
+while (s != "1" or s != "2" or s != "3"):
     print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case ] ")
     s = input()
     if s == "1":
@@ -580,7 +558,7 @@ while (s != "1" or s != "2"):
 
 
     elif s == "2":
-        net = Net()
+
         model_dir, model_name = model_loader()
         net.load_state_dict(torch.load(model_dir))
         net.to(device)
@@ -598,7 +576,7 @@ while (s != "1" or s != "2"):
 
 
     elif s == "3":
-        net = Net()
+
         model_dir, model_name = model_loader()
         net.load_state_dict(torch.load(model_dir))
         net.to(device)
@@ -608,18 +586,35 @@ while (s != "1" or s != "2"):
         for i in param:
             print(i.shape)
         print("-----------------------")
-        break;
+
+
+        sample_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/sample/'
+        sample_list = os.listdir(sample_dir)
+
+        for i in sample_list :
+            img = Image.open("{}/{}".format(sample_dir, i))
+            if(img.mode =="L"):
+                img = img.convert("RGB")
+
+            img_label = i.split("_")[1][0]
+            predicted = 0
+            img = data_transforms[TEST](img)
+            img = img.unsqueeze(0)
+            image = img.cuda()
+            net.eval()
+            outputs, f, result, vector = net(image)
+            _, predicted = torch.max(outputs, 1)
+            print("file {} :  label : {} | predict: {}".format(i,img_label , class_names[predicted]))
+
+
+
+        break
 
     else:
         print("check command")
 
 print("-----------------------")
-print("Done.")
 
-'''
 
-'''
-
-# functions to show an image
 
 print("Done!")
