@@ -82,8 +82,8 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass           Valid :
 ==================================================
 '''
 
-epoch_count = 100
-version = "5.3"
+epoch_count = 20
+version = "5.4"
 batch = 16
 label = 0
 #   ver1 ~ 3 (26+10)
