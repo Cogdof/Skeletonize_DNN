@@ -706,9 +706,9 @@ while (s != "1" or s != "2" or s != "3"):
 
         train2()
         print("-----------------------")
-        validation()
+        #validation()
         print("-----------------------")
-        test()
+        #test()
         break
 
     else:
