@@ -95,7 +95,8 @@ model_name = "Ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
+data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+
 TRAIN = 'Train'
 VAL = 'Validation'
 TEST = 'Test'
@@ -248,24 +249,20 @@ class Net(nn.Module):
         return x, features, result, vector
 
 class Net_convol(nn.Module):
-    class Net(nn.Module):
-        def __init__(self):
-            super(Net, self).__init__()
-            self.conv1 = nn.Conv2d(3, 6, 5)
-            self.pool = nn.MaxPool2d(2, 2)
-            self.conv2 = nn.Conv2d(6, 16, 5)
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)
-            self.fc2 = nn.Linear(120, 84)
-            self.fc3 = nn.Linear(84, 10)
+    def __init__(self):
+        super(Net_convol, self).__init__()
+        self.fc1 = nn.Linear(512*4, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 47)
 
-        def forward(self, x):
-            x = self.pool(F.relu(self.conv1(x)))
-            x = self.pool(F.relu(self.conv2(x)))
-            x = x.view(-1, 16 * 5 * 5)
-            x = F.relu(self.fc1(x))
-            x = F.relu(self.fc2(x))
-            x = self.fc3(x)
-            return x
+    def forward(self, x):
+        #x = self.pool(F.relu(self.conv1(x)))
+        #x = self.pool(F.relu(self.conv2(x)))
+        #x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -501,16 +498,20 @@ def test():
 
 
 def train2():
+    net = Net()
+    net2 = Net_convol()
+    net.to(device)
+    net2.to(device)
+
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.Adam(net.parameters(), lr=0.00001)  # origin  lr =0.00001
     train_size = dataset_sizes[TRAIN]
 
     model_dir, model_name = model_loader()
     net.load_state_dict(torch.load(model_dir))
-    net.to(device)
 
-    net2 = Net_convol
-    net2.to(device)
+
+
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -519,10 +520,11 @@ def train2():
             # get the inputs
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
+            print(inputs.shape)
             # zero the parameter gradients
             optimizer.zero_grad()
 
-            # print(inputs.shape)
+
             # print(inputs.shape)
             # forward + backward + optimize
 
@@ -530,6 +532,7 @@ def train2():
 
             _, _, _, vector = net(inputs)
             outputs, f = net2(vector)
+            print(vector)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -580,19 +583,19 @@ data_transforms = {
         # Here, we randomly crop the image to 224x224 and
         # randomly flip it horizontally.
         transforms.Resize(224),
-        # transforms.CenterCrop(224),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     VAL: transforms.Compose([
         transforms.Resize(224),
-        # transforms.CenterCrop(224),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ]),
     TEST: transforms.Compose([
         transforms.Resize(224),
-        # transforms.CenterCrop(224),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
@@ -602,7 +605,7 @@ vector_transform = {
     transforms.Compose([
 
         transforms.Resize(224),
-        # transforms.CenterCrop(224),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
