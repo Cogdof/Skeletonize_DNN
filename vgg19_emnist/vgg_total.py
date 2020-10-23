@@ -251,9 +251,10 @@ class Net(nn.Module):
 class Net_convol(nn.Module):
     def __init__(self):
         super(Net_convol, self).__init__()
-        self.fc1 = nn.Linear(512*4, 120)
+        self.fc1 = nn.Linear(512, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 47)
+        self.fc3 = nn.Linear(84, 60)
+        self.classifier = nn.Linear(60, label)
 
     def forward(self, x):
         #x = self.pool(F.relu(self.conv1(x)))
@@ -262,6 +263,7 @@ class Net_convol(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+        x = self.classifier(x)
         return x
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -519,8 +521,9 @@ def train2():
         for i, data in enumerate(dataloaders[TRAIN], 0):
             # get the inputs
             inputs, labels = data
+            original = labels
             inputs, labels = inputs.to(device), labels.to(device)
-            print(inputs.shape)
+            #print(inputs.shape)
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -530,10 +533,13 @@ def train2():
 
             # outputs, f = net(inputs)               # *original
 
-            _, _, _, vector = net(inputs)
-            outputs, f = net2(vector)
-            print(vector)
-            loss = criterion(outputs, labels)
+            outputs, _, _, vector = net(inputs)
+            _, predicted = torch.max(outputs, 1)
+            outputs2 = net2(vector)
+            _, predicted2 = torch.max(outputs2, 1)
+            #print(predicted2, " ", labels)
+
+            loss = criterion(outputs2, labels)
             loss.backward()
             optimizer.step()
 
