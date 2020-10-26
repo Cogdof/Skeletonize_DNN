@@ -84,9 +84,9 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass           Valid :
 '''
 
 epoch_count = 20
-version = "1.0"
+version = "1.1"
 batch = 4
-label = 0
+label = 47
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
 #   ver4 47 = 26+10 + 11
@@ -510,6 +510,7 @@ def train2():
     train_size = dataset_sizes[TRAIN]
 
     model_dir, model_name = model_loader()
+    #print(model_name.split("_")[1])
     net.load_state_dict(torch.load(model_dir))
 
 
@@ -574,8 +575,8 @@ def train2():
 
 
     model_type2 = "ConvNet"
-
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_{}_.pth".format(model_type2, model_name)
+    model_name2 = model_type2 + "_v" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}+{}_.pth".format(model_name.split("_")[1], model_name2)
     torch.save(net2.state_dict(), save_path)
 
 
