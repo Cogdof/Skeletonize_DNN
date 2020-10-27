@@ -12,7 +12,6 @@ result_path = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/
 #하위리스트
 
 
-
 file_list = os.listdir(path)
 
 #file_list = file_list.sort()

@@ -14,7 +14,7 @@ label :
 ver1 : 47 0-9 a-z + @ (ABDEFGHNQRT)
 ver2 : 62 0-9 a-z A-Z
 
-lastest update : 20.10.26
+[Lastest update] : 2020.10.27 
 
 ------------------------------------
 '''

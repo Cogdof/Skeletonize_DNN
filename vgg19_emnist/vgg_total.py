@@ -46,8 +46,7 @@ version sequence also change..
 
 
 
-[Lastest update]
-2020.10.19 Mon 
+[Lastest update] : 2020.10.27 
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -71,22 +70,22 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 ver 4.6 batch 10 epoch 30 resize 224 balanced 
 
 [EMNIST_Letter_vgg and spinalVGG.py]
-ver 5.0 spinalnet + vgg5 with EMNIST byclass
-ver 5.1 spinalnet + vgg5 with EMNIST balance      Valid : 90 | test : 24 
+ver 5.0 spinalnet + vgg5 with EMNIST byclass    
+ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24 
 
-Final model : 
+[Final model] 
 
 [VGG19]
-ver 5.3 VGG19 , batch 16, epoch 10 resize 224, with EMNIST balance       Valid : 90% | test : 24%
-ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass           Valid : 77% | test : 76%
+ver 5.3 VGG19 , batch 16, epoch 10 resize 224, with EMNIST balance      [Dataset: balanced] : Valid : 90% | test : 88% : 
+ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass          [Dataset: byclass] Valid : 77% | test : 76%     # resize 784 /784
 
 ==================================================
 '''
 
-epoch_count = 20
-version = "1.1"
+epoch_count = 30
+version = "4.6"
 batch = 4
-label = 47
+label = 62
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
 #   ver4 47 = 26+10 + 11
@@ -95,7 +94,9 @@ model_name = "Ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
-data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
+
+# data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
 
 TRAIN = 'Train'
 VAL = 'Validation'
