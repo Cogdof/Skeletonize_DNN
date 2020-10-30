@@ -1,6 +1,7 @@
 import cv2
 import os
-
+import PIL.Image as IMG
+import numpy as np
 '''
 ------------------------------------
 # [20.10.23 build]
@@ -30,12 +31,15 @@ def load_font(label):
     font_list = os.listdir(font_dir)
     fontimg_list = []
 
+
     for i in font_list:
-        fontimg_list.append(img_convert(i))
+        im = IMG.open(font_dir+"/"+i)
+        nparry_im = np.array(im)
+        fontimg_list.append(nparry_im)
+        #fontimg_list.append(img_convert(i))
     # img convert
-
-
     return fontimg_list
+
 
 def img_convert(font_list):
     # Add random effect to img like noise, Change color, opacity, blur

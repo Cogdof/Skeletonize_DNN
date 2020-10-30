@@ -57,8 +57,7 @@ ver 1.3 batch 4, epoch 5
 ver 2.1 batch 8 epoch 5, skeletonize(external data)
 ver 2.2 batch 8 epoch 10, skeletonize(external data)
 ver 2.3 batch 4, epoch 10, skeletonize(external data)
-ver 2.4 batch 4, epoch 5, skeletonize(external data).
-    change f1,f2,f3 layers
+ver 2.4 batch 4, epoch 5, skeletonize(external data), change f1,f2,f3 layers
 
 ver 4.0 batch 8 epoch 10 VGG 26+26+10 case,digit of EMNIST dataset.
 ver 4.1 batch 16 epoch 10
@@ -66,8 +65,8 @@ ver 4.2 batch 4  epoch 10 , resize 224 -> 28*28 784
 ver 4.3 batch 4 epoch 10(test), resize244 to 784, working fc layer
 ver 4.4 batch 4 epoch 20 resize 784, fc3
 ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
-
-ver 4.6 batch 10 epoch 30 resize 224 balanced 
+ver 4.6 batch 4 epoch 10 resize 224 balanced   [now training]
+ver 4.7 batch 4 epoch 30 resize 224 balanced   
 
 [EMNIST_Letter_vgg and spinalVGG.py]
 ver 5.0 spinalnet + vgg5 with EMNIST byclass    
@@ -82,7 +81,7 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass          [Dataset
 ==================================================
 '''
 
-epoch_count = 30
+epoch_count = 10
 version = "4.6"
 batch = 4
 label = 62

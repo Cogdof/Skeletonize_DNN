@@ -6,9 +6,10 @@ import os, cv2
 import skimage
 
 #원본데이터 경로
-path = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Train/"
+#path = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Train/"  #origin
+path = "/home/mll/v_mll3/OCR_data/dataset/image_release_190624/word100set에서fail//"    #skeletonized
 #결과데이터 경로
-result_path = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Train2/"
+result_path = "/home/mll/v_mll3/OCR_data/dataset/image_release_190624/word100set_fail_sk/thin/"
 #하위리스트
 
 
@@ -39,14 +40,14 @@ for folder in file_list:
         blur = cv2.GaussianBlur(thr, (3, 3), 0)
         image = invert(img_as_bool(blur))
 
-        out = skeletonize(image)
+        #out = skeletonize(image)
 
         #skeleton_lee = skeletonize(image, method='lee')
         #out = skeleton_lee
 
         #skel, distance = medial_axis(image, return_distance=True)
 
-        #out = thin(image, max_iter=1)
+        out = thin(image, max_iter=1)
         #out3 = distance * skel
 
 
@@ -55,8 +56,10 @@ for folder in file_list:
         output_dir = result_path + folder+"/"
         if not (os.path.isdir(output_dir)):  # 새  파일들을 저장할 디렉토리를 생성
             os.makedirs(os.path.join(output_dir))
+            os.makedirs(os.path.join(output_dir+"/data/"))
         files_dir = files[i].split('/')
-        save_file_dir = output_dir +"/"+files_dir[11]
+        #save_file_dir = output_dir +"/"+files_dir[11]
+        save_file_dir = output_dir + "/data/" + files_dir[11]
 
         '''
         f, (ax0) = plt.subplots(1, 1)
