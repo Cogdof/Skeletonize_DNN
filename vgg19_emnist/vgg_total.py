@@ -46,7 +46,7 @@ version sequence also change..
 
 
 
-[Lastest update] : 2020.10.27 
+[Lastest update] : 2020.10.30 
 
 [version]
 ver 1.0 batch 8, epoch 5
