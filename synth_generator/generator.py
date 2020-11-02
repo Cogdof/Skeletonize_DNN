@@ -1,7 +1,9 @@
 import cv2
 import os
-import PIL.Image as IMG
+import PIL.Image as Image
+from PIL import ImageFilter
 import numpy as np
+import random
 '''
 ------------------------------------
 # [20.10.23 build]
@@ -20,91 +22,128 @@ ver2 : 62 0-9 a-z A-Z
 ------------------------------------
 '''
 file_dir  = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/v1/"
+font_dir47 = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/Fnt_transparent_47/"
+font_dir62 = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/Fnt_transparent_62/"
+bg_dir = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/Background/"
+save_dir = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/generate_img/"
 
-def load_font(label):
-    #load font style with label
+def color_convert(img):
+    #change font's color randomly
 
-    font_dir = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/Fnt/"
+    random1 = random.randint(0, 255)
+    random2 = random.randint(0, 255)
+    random3 = random.randint(0, 255)
 
-    #open label[x] 's dir
-    font_dir = font_dir+"/"+label
-    font_list = os.listdir(font_dir)
-    fontimg_list = []
-
-
-    for i in font_list:
-        im = IMG.open(font_dir+"/"+i)
-        nparry_im = np.array(im)
-        fontimg_list.append(nparry_im)
-        #fontimg_list.append(img_convert(i))
-    # img convert
-    return fontimg_list
+    for i in range(0, img.size[0]):
+        for j in range(0, img.size[1]):
+            rgb = img.getpixel((i, j))
+            if rgb[0] == 0: #and rgb[1]==0 and rgb[3]==0:
+                rgb_r = (random1-rgb[0], random2 - rgb[1], random3 - rgb[2])
+                img.putpixel((i, j), rgb_r)
+    return img
 
 
-def img_convert(font_list):
-    # Add random effect to img like noise, Change color, opacity, blur
 
-    return 0
-
-def load_background():
-    # Get any wild image, -> split size AxB
-
-    backimg_dir = "/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/English_폰트/Fnt/"
-
-    return 0
-
-def belnding(label):
+def belnding(label, label_count):
     # merge font and background
 
-    # opaci
-    a =0.5
-    b =0.5
+    if label_count ==47:
+        font_dir = font_dir47
+    else:
+        font_dir = font_dir62
+    font_dir = font_dir + "/" + label
+    font_list = os.listdir(font_dir)
 
-    fonts = load_font(label)
-    background = load_background()
+    bg_list = os.listdir(bg_dir)
 
-    name = 0
-    for i in fonts:
-        for j in background:
 
-            j = cv2.resize(i.shape[1], i.shape[0])  #same size with two img
-            name +=1
-            new_img = cv2.addWeighted(i, a, j, b, 0)
-            cv2.imshow(new_img)
-            cv2.imwrite(file_dir+"/"+label+"/"+label+"_"+str(name)+".png", new_img)
+
+    count=0
+
+    for a in bg_list:
+        bg = Image.open("{}".format(bg_dir+"/"+a), 'r')
+
+        for b in font_list:
+            count+=1
+            font = Image.open("{}".format(font_dir+"/"+b), 'r')
+            text_img = Image.new('RGBA', (font.width, font.height), (0, 0, 0, 0))
+
+
+            # random count
+            # blur 0~5
+            # tranperncy : 50 ~ 90%
+
+
+
+            # Blur
+            blur_count = random.randint(0,3)
+            gaussianBlur = ImageFilter.GaussianBlur(blur_count)
+            font = font.filter(gaussianBlur)
+
+            # Opacity
+            TRANSPARENCY = random.randint(55,95)
+
+            # Color convertinput()
+            font = color_convert(font)
+
+            font_mask = font.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
+
+            # font2 = font2.rotate(45)
+            # font2 = font2.rotate(90)
+
+            text_img.paste(bg, (0, 0))
+            text_img.paste(font, (0, 0), mask=font_mask)
+            #text_img.show()
+
+            if not (os.path.isdir(save_dir+label)):  # 새  파일들을 저장할 디렉토리를 생성
+                os.makedirs(os.path.join(save_dir+label))
+
+            text_img.save(save_dir+label+"/"+str(label)+"_"+str(count)+".png")
+            #print(save_dir+label+"/"+label+"_"+count+".png")
+            text_img.close()
+
+    print(label +" is done..")
+
 
 
 
 
 def main():
 
+    '''
+    font = Image.open('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/font1.png', 'r')
+    bg = Image.open('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/2.jpeg', 'r')
+    text_img = Image.new('RGBA', (font.width, font.height), (0, 0, 0, 0))
 
-    a = 0.0
+    # Blur
+    blur_count = 3
+    gaussianBlur = ImageFilter.GaussianBlur(blur_count)
+    font = font.filter(gaussianBlur)
 
-    while (a <= 1.0):
-        img1 = cv2.imread('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/1.jpeg')
-        img2 = cv2.imread('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/font1.png')
+    # Opacity
+    TRANSPARENCY = 55
 
-        # 블렌딩하는 두 이미지의 크기가 같아야함
-        width = img1.shape[1]
-        height = img1.shape[0]
-        img2 = cv2.resize(img2, (width, height))
+    # Color convert
+    font = color_convert(font)
 
-        # img1 사진은 점점 투명해지고 img2 사진은 점점 불투명해짐
-        b = 1.0 - a
-        dst = cv2.addWeighted(img1, a, img2, b, 0)
-        cv2.imshow('dst', dst)
-        cv2.waitKey(0)
+    font_mask = font.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
 
-        print(a, " ", b)
+    # font2 = font2.rotate(45)
+    # font2 = font2.rotate(90)
 
-        a = a + 0.2
+    text_img.paste(bg, (0, 0))
+    text_img.paste(font, (0, 0), mask=font_mask)
+    text_img.show()
+    text_img.save("ball.png", format="png")
 
-    #file_dir
+    '''
 
 
 
-    label47 = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'D', 'E', 'F', 'G', 'H', 'N', 'Q', 'R', 'T', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
+
+    label47 = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'D', 'E', 'F', 'G', 'H', 'N', 'Q', 'R', 'T', 'a', 'b',
+               'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
     # 47 label
 
     ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
@@ -121,15 +160,20 @@ def main():
     mode = input()
 
     if mode =="1":
+        label = 47
         for i in label47:
-            belnding(i)
 
+            belnding(i,label)
+            print("working on "+i)
     elif mode=="2":
+        label = 62
         for i in label62:
-            belnding(i)
+            print("working on " + i)
+            belnding(i,label)
     else:
         print("Wrong input")
 
+    print("done!")
 
 
 if __name__== "__main__":
