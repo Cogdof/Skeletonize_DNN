@@ -15,7 +15,7 @@ label :
 ver1 : 47 0-9 a-z + @ (ABDEFGHNQRT)
 ver2 : 62 0-9 a-z A-Z
 
-[Lastest update] : 2020.10.30 
+[Lastest update] : 2020.11.01
 
 ------------------------------------
 '''
@@ -77,6 +77,28 @@ def belnding(label):
 
 
 def main():
+
+
+    a = 0.0
+
+    while (a <= 1.0):
+        img1 = cv2.imread('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/1.jpeg')
+        img2 = cv2.imread('/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/generated_char_img/font1.png')
+
+        # 블렌딩하는 두 이미지의 크기가 같아야함
+        width = img1.shape[1]
+        height = img1.shape[0]
+        img2 = cv2.resize(img2, (width, height))
+
+        # img1 사진은 점점 투명해지고 img2 사진은 점점 불투명해짐
+        b = 1.0 - a
+        dst = cv2.addWeighted(img1, a, img2, b, 0)
+        cv2.imshow('dst', dst)
+        cv2.waitKey(0)
+
+        print(a, " ", b)
+
+        a = a + 0.2
 
     #file_dir
 
