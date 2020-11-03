@@ -46,7 +46,7 @@ version sequence also change..
 
 
 
-[Lastest update] : 2020.10.30 
+[Lastest update] : 2020.11.02
 
 [version]
 ver 1.0 batch 8, epoch 5
@@ -72,11 +72,23 @@ ver 4.7 batch 4 epoch 30 resize 224 balanced
 ver 5.0 spinalnet + vgg5 with EMNIST byclass    
 ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24 
 
+
+
+
+
 [Final model] 
 
 [VGG19]
 ver 5.3 VGG19 , batch 16, epoch 10 resize 224, with EMNIST balance      [Dataset: balanced] : Valid : 90% | test : 88% : 
 ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass          [Dataset: byclass] Valid : 77% | test : 76%     # resize 784 /784
+
+* Need rename with model.
+convnet -> connNet, version start with 6.x
+
+
+
+
+
 
 ==================================================
 '''
@@ -84,7 +96,7 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass          [Dataset
 epoch_count = 10
 version = "4.6"
 batch = 4
-label = 62
+
 #   ver1 ~ 3 (26+10)
 #   ver4 61 = (26 +26 +10)
 #   ver4 47 = 26+10 + 11
@@ -514,9 +526,6 @@ def train2():
     net.load_state_dict(torch.load(model_dir))
 
 
-
-
-
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
         running_loss = 0.0
         for i, data in enumerate(dataloaders[TRAIN], 0):
@@ -580,9 +589,124 @@ def train2():
     torch.save(net2.state_dict(), save_path)
 
 
-# for vgg_19
-# VGG-16 Takes 224x224 images as input, so we resize all of them
+def validation2():
+    class_correct = list(0. for i in range(label_count))
+    class_total = list(0. for i in range(label_count))
+    class_vector = list([] for i in range(label_count))
+    class_result = list([] for i in range(label_count))
 
+    total_acc = 0
+    with torch.no_grad():
+        for data in dataloaders[VAL]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+            outputs, _, result, vector = net(images)
+            # outputs, _ = net(images)                   #origin
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(len(labels)):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+                class_vector[label].append(vector)
+                class_result[label].append(result)
+
+    # log file save
+    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name),
+                'w')
+
+    # vector, result save path.
+    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name)
+    if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
+        os.makedirs(os.path.join(newPath))
+
+    file.write("Label                               correct count  |  total count \n")
+    total_count = 0
+    correct_count = 0
+    for i in range(label_count):
+        print('Accuracy class_correctof %5s : %2d %%' % (
+            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
+        total_count = total_count + class_total[i]
+        correct_count = correct_count + class_correct[i]
+        file.write('Accuracy class_correctof %5s : %2d %%' % (
+            image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
+        file.write("    {0:<10}".format(class_correct[i]))
+        file.write("| {0:<10} \n".format(class_total[i]))
+
+        # vector log file save
+        file2 = open('{}/Valid_connectedNet_vector_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i]), 'w')
+        torch.save(vector, "{}/Valid_connectedNet_vector_label[{}]_.pt".format(newPath, image_datasets[VAL].classes[i]))
+        file3 = open(
+            '{}/Valid_connectedNet_result_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i], version, epoch_count), 'w')
+        vector2 = vector.tolist()
+
+        # result log file save
+
+        for j in range(len(class_vector[i])):
+            file3.write(str(class_result[i][j]))
+            file3.write("\n")
+
+        for j in vector2:
+            for k in j:
+                file2.write(str(k) + " ")
+            file2.write("\n\n")
+
+        file2.close()
+        file3.close()
+        total_acc = total_acc + (100 * class_correct[i] / class_total[i])
+
+    print('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
+    file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
+    file.write('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
+
+    file.close()
+    file2.close()
+    file3.close()
+
+def test2():
+    class_correct = list(0. for i in range(label_count))
+    class_total = list(0. for i in range(label_count))
+    total_acc = 0
+    with torch.no_grad():
+        for data in dataloaders[TEST]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+
+            _, predicted = torch.max(outputs, 1)
+            c = (predicted == labels).squeeze()
+            for i in range(len(labels)):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    file = open(
+        '{} Test_connectedNet_log_{}_.txt'.format(log_path, model_name),
+        'w')
+    file.write("Label                   correct count  |  total count \n")
+    total_count = 0
+    correct_count = 0
+    for i in range(label_count):
+        print('Accuracy of %5s : %2d %%' % (
+            image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
+        file.write('Accuracy of %5s : %2d %%' % (
+            image_datasets[TEST].classes[i], 100 * class_correct[i] / class_total[i]))
+        file.write("    {0:<10}".format(class_correct[i]))
+        file.write("| {0:<10} \n".format(class_total[i]))
+        total_acc = total_acc + (100 * class_correct[i] / class_total[i])
+        total_count = total_count + class_total[i]
+        correct_count = correct_count + class_correct[i]
+
+    print('Accuracy total class : %2d %%' % (total_acc / label_count))
+    file.write('Accuracy total class : %2d %% \n' % (total_acc / label_count))
+    file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
+    file.close()
+
+
+#================================================================================================#
 
 data_transforms = {
     TRAIN: transforms.Compose([

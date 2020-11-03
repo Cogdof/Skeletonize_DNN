@@ -17,7 +17,9 @@ label :
 ver1 : 47 0-9 a-z + @ (ABDEFGHNQRT)
 ver2 : 62 0-9 a-z A-Z
 
-[Lastest update] : 2020.11.01
+[Lastest update] : 2020.11.03
+
+
 
 ------------------------------------
 '''
@@ -58,40 +60,63 @@ def belnding(label, label_count):
 
 
 
-    count=0
 
-    for a in bg_list:
-        bg = Image.open("{}".format(bg_dir+"/"+a), 'r')
+    # font each char ~= 1100 * n of random background
+    count = 0
+    for b in font_list:
+        for n in bg_list:
+            count += 1
+            bg = Image.open("{}".format(bg_dir + "/" + n), 'r')
 
-        for b in font_list:
-            count+=1
+            #random_bg = bg_list[(random.randint(0, len(bg_list)-1))]
+            #bg = Image.open("{}".format(bg_dir + "/" + random_bg), 'r')
+
+
             font = Image.open("{}".format(font_dir+"/"+b), 'r')
             text_img = Image.new('RGBA', (font.width, font.height), (0, 0, 0, 0))
 
 
-            # random count
-            # blur 0~5
-            # tranperncy : 50 ~ 90%
+            # random set noise to font img
+            # blur 0~3
+            # opcatiy : 65 ~ 100%
+            # angle
 
 
+            # Blur 20%, gaussianblur 0~5
+            blur = random.randint(0, 5)
+            if blur >= 4:
+                blur_count = random.randint(0,3)
+                gaussianBlur = ImageFilter.GaussianBlur(blur_count)
+                font = font.filter(gaussianBlur)
 
-            # Blur
-            blur_count = random.randint(0,3)
-            gaussianBlur = ImageFilter.GaussianBlur(blur_count)
-            font = font.filter(gaussianBlur)
+            # Color 50%
+            color = random.randint(0, 5)
+            if color >= 3:
+                font = color_convert(font)
 
-            # Opacity
-            TRANSPARENCY = random.randint(55,95)
+            # angle 20%
+            angle = random.randint(0,5)
+            if angle==4:
+                font= font.rotate(45)
+            elif angle==5:
+                font = font.rotate(45)
+                font = font.rotate(90)
 
-            # Color convertinput()
-            font = color_convert(font)
+            # Opacity 20%, 65~85%
+            opacity = random.randint(0,5)
+            if opacity>=4:
+                TRANSPARENCY = random.randint(65, 85)
+                font_mask = font.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
+            else:
+                TRANSPARENCY = 100
+                font_mask = font.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
 
-            font_mask = font.split()[3].point(lambda i: i * TRANSPARENCY / 100.)
+            # randomly choose x, y spot of background
+            x =  random.randint(0, abs(bg.width-font.width))
+            y = random.randint(0, abs(bg.height - font.height))
 
-            # font2 = font2.rotate(45)
-            # font2 = font2.rotate(90)
 
-            text_img.paste(bg, (0, 0))
+            text_img.paste(bg, (-x, -y))
             text_img.paste(font, (0, 0), mask=font_mask)
             #text_img.show()
 
@@ -99,8 +124,8 @@ def belnding(label, label_count):
                 os.makedirs(os.path.join(save_dir+label))
 
             text_img.save(save_dir+label+"/"+str(label)+"_"+str(count)+".png")
-            #print(save_dir+label+"/"+label+"_"+count+".png")
-            text_img.close()
+            print(save_dir+label+"/"+str(label)+"_"+str(count)+".png")
+            #text_img.close()
 
     print(label +" is done..")
 
