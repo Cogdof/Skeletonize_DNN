@@ -22,7 +22,7 @@ import sys
 import math
 
 '''
-==================================================
+===============================================================================================
 [Based network]
  Pytorch VGG19
 
@@ -35,6 +35,10 @@ v3.x Skeletonized_character_dataset6  : Recognition character ->  dataset
 
 v4.x EMNIST OCR 62 label dataset *
 
+ver 6.0x Simple network with original skeletonized dataset (crop from CRAFT, Deep-text data)
+ver 6.1x Simple network with generated synth char dataset 
+
+ver 7.0x Decision Tree
 
 -----------------------------------------------------
 2020.09.28 mon
@@ -46,9 +50,9 @@ version sequence also change..
 
 
 
-[Lastest update] : 2020.11.02
+[Lastest update] : 2020.11.03
 
-[version]
+================[VGG19 version]================
 ver 1.0 batch 8, epoch 5
 ver 1.1 batch 8, epoch 10
 ver 1.2 batch 8, epoch 20
@@ -68,10 +72,19 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3 -> to late
 ver 4.6 batch 4 epoch 10 resize 224 balanced   [now training]
 ver 4.7 batch 4 epoch 30 resize 224 balanced   
 
-[EMNIST_Letter_vgg and spinalVGG.py]
+ver 5.3 VGG19 , batch 16, epoch 10 resize 224, with EMNIST balance
+
+[EMNIST_Letter_vgg and spinalVGG.py]xxxxxxxxxxxxxx
 ver 5.0 spinalnet + vgg5 with EMNIST byclass    
 ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24 
 
+================================================
+================[ConnNet]================
+
+ver 6.x Simple network
+
+
+ver 7.x Decision Tree
 
 
 
@@ -85,12 +98,17 @@ ver 4.5 batch 4 epoch 100 resize 224, fc3, with EMNIST byclass          [Dataset
 * Need rename with model.
 convnet -> connNet, version start with 6.x
 
+Old
+ConnNet_v1.2+VGG19_v5.3 
+->
+New
+ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 
 
 
 
 
-==================================================
+===============================================================================================
 '''
 
 epoch_count = 10
@@ -105,9 +123,9 @@ model_name = "Ver" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
+#data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
 
-# data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -125,9 +143,7 @@ transform = transforms.Compose([
 
 
 # ---------------------------------------
-
-
-# --------------------------------------
+# VGG-19_62 label, additional 3 nn layer
 class Net2(nn.Module):
     label = 62
 
@@ -187,7 +203,7 @@ class Net2(nn.Module):
 
         return x, features, result, vector
 
-
+# VGG-19_47 label, normal vgg19
 class Net(nn.Module):
     label = 47
 
@@ -260,6 +276,7 @@ class Net(nn.Module):
 
         return x, features, result, vector
 
+# Connected Network -1 , simple layers
 class Net_convol(nn.Module):
     def __init__(self):
         super(Net_convol, self).__init__()
@@ -278,10 +295,16 @@ class Net_convol(nn.Module):
         x = self.classifier(x)
         return x
 
+# Connected Network -2 Decision Tree
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-print("1: vgg19_1[47] | 2: vgg19_2[62]")
+
+
+
+
+print("Choose  VGG19 - OCR network model |  1: vgg19_1[47] | 2: vgg19_2[62]")
 
 model_choose = input()
 if model_choose == "1":
@@ -292,7 +315,8 @@ if model_choose == "1":
     print(len(param))
     for i in param:
         print(i.shape)
-    model_type = "vgg19_1"
+    model_type = "VGG19_47"
+
 elif model_choose=="2":
     label = 62
     net = Net2()
@@ -301,9 +325,22 @@ elif model_choose=="2":
     print(len(param))
     for i in param:
         print(i.shape)
-    model_type = "vgg19_2"
+    model_type = "VGG19_62"
 
 
+print("Choose  Connected Network model |  1: SimpleNet | 2: DTNet")
+model_choose = input()
+if model_choose == "1":
+    net2 = Net_convol()
+    net2 = net2.to(device)
+    param = list(net2.parameters())
+    print(len(param))
+    for i in param:
+      print(i.shape)
+    model_type2 = "ConnNet_47"
+
+elif model_choose=="2":
+    print("not yet")
 # print(param[0].shape)
 
 
@@ -330,7 +367,6 @@ def model_loader():
     return model_dir, model_name
 
 
-# VGG-19
 
 
 def train():
@@ -584,7 +620,7 @@ def train2():
 
 
     model_type2 = "ConvNet"
-    model_name2 = model_type2 + "_v" + version + "_ep" + str(epoch_count) + "_batch" + str(batch)
+    model_name2 = model_type2 + "_v" + version + "_"+model+"_ep" + str(epoch_count) + "_batch" + str(batch)
     save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}+{}_.pth".format(model_name.split("_")[1], model_name2)
     torch.save(net2.state_dict(), save_path)
 
@@ -592,7 +628,7 @@ def train2():
 def validation2():
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
-    class_vector = list([] for i in range(label_count))
+    TP, TN, FP, FN =0,0,0,0
     class_result = list([] for i in range(label_count))
 
     total_acc = 0
@@ -601,29 +637,36 @@ def validation2():
             images, labels = data
             images = images.cuda()
             labels = labels.cuda()
-            outputs, _, result, vector = net(images)
-            # outputs, _ = net(images)                   #origin
+            outputs, _, _, vector = net(images)
             _, predicted = torch.max(outputs, 1)
-            c = (predicted == labels).squeeze()
+            outputs2 = net3(vector)
+            _, predicted2 = torch.max(outputs2, 1)
+            c = (predicted2 == labels).squeeze()
+
+            #if predicted2 == labels:
+             #   TP+=1
+
+
             for i in range(len(labels)):
                 label = labels[i]
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
-                class_vector[label].append(vector)
-                class_result[label].append(result)
+
+
 
     # log file save
-    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name),
+    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name3),
                 'w')
 
     # vector, result save path.
-    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name)
+    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name3)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
         os.makedirs(os.path.join(newPath))
 
     file.write("Label                               correct count  |  total count \n")
     total_count = 0
     correct_count = 0
+
     for i in range(label_count):
         print('Accuracy class_correctof %5s : %2d %%' % (
             image_datasets[VAL].classes[i], 100 * class_correct[i] / class_total[i]))
@@ -634,26 +677,9 @@ def validation2():
         file.write("    {0:<10}".format(class_correct[i]))
         file.write("| {0:<10} \n".format(class_total[i]))
 
-        # vector log file save
-        file2 = open('{}/Valid_connectedNet_vector_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i]), 'w')
-        torch.save(vector, "{}/Valid_connectedNet_vector_label[{}]_.pt".format(newPath, image_datasets[VAL].classes[i]))
-        file3 = open(
-            '{}/Valid_connectedNet_result_label[{}]_.txt'.format(newPath, image_datasets[VAL].classes[i], version, epoch_count), 'w')
-        vector2 = vector.tolist()
-
         # result log file save
 
-        for j in range(len(class_vector[i])):
-            file3.write(str(class_result[i][j]))
-            file3.write("\n")
 
-        for j in vector2:
-            for k in j:
-                file2.write(str(k) + " ")
-            file2.write("\n\n")
-
-        file2.close()
-        file3.close()
         total_acc = total_acc + (100 * class_correct[i] / class_total[i])
 
     print('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
@@ -661,8 +687,7 @@ def validation2():
     file.write('Accuracy total class_correct of  : %2d %%' % (total_acc / label_count))
 
     file.close()
-    file2.close()
-    file3.close()
+
 
 def test2():
     class_correct = list(0. for i in range(label_count))
@@ -773,7 +798,7 @@ print(image_datasets[TRAIN].classes)
 
 s = 't'
 while (s != "1" or s != "2" or s != "3"):
-    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | (4) train skeletonize_vector data] ")
+    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | (4) train connNet with skeletonized_vector data   \n (5) validation connNet ] ")
     s = input()
     if s == "1":
 
@@ -840,9 +865,29 @@ while (s != "1" or s != "2" or s != "3"):
 
         train2()
         print("-----------------------")
-        #validation()
+        validation2()
         print("-----------------------")
-        #test()
+        test2()
+        break
+
+    elif s == "5":
+
+
+        print("Select VGG19 model :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+
+        print("Select ConnNet model :")
+        net3 = Net_convol()
+        model_dir3, model_name3= model_loader()
+        net3.load_state_dict(torch.load(model_dir3))
+        net3.to(device)
+
+        print("-----------------------")
+        validation2()
+        print("-----------------------")
+        test2()
         break
 
     else:
