@@ -9,7 +9,7 @@ import shutil
 
 
 befor_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Train'
-after_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Validation'
+after_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Test'
 
 befor_file_list = os.listdir(befor_dir)
 
@@ -27,12 +27,12 @@ for label_folder in befor_file_list:
 
     image_list = os.listdir(befor_dir+'/'+label_folder)
 
-    test_image_num = len(image_list) * 0.2      # each label images's 5%
+    test_image_num = len(image_list) * 0.05      # each label images's 5%
 
     for image in image_list:
 
         if count < test_image_num:
-            shutil.copy(befor_dir+'/'+label_folder+'/'+image , after_dir+'/'+label_folder+'/'+image)
+            shutil.move(befor_dir+'/'+label_folder+'/'+image , after_dir+'/'+label_folder+'/'+image)
             count = count + 1
             print(
                 befor_dir + '/' + label_folder + '/' + image + ' \n are copy to \n' + after_dir + '/' + label_folder + '/' + image)

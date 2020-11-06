@@ -1,53 +1,40 @@
-import collections
-from PIL import Image
 import os
-
-
+import shutil
 
 
 '''
-# # copy image with recognition over setting threshold (60%)
-# # generate answer txt file same name.
+# copy images ans seperate each folder for train/test
+
 '''
 
 
-log_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/log_high.txt'
-file_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/word단위_with_label/result_model_mlt25k_ic15_recogtitiontrainset_new/'
+befor_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Train'
+after_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021/Validation'
 
-file = open(log_path, mode='rt')
-isinstance(file, collections.Iterable)
+befor_file_list = os.listdir(befor_dir)
 
-for line in file:
-    #print("[",line,"]")
-    if(line=="\n"):
-        break;
-    str = line.split("\t")[0]
-    answer = line.split("\t")[1]
-    print(str)
-    #print(answer)
-    str2 = str.split("/")
-    str_rename = str2[6]+"_"+str2[7]
-
-    # dir generate
-    target_dir = file_dir + str2[6]+'/'
-    if not (os.path.isdir(target_dir)):  # 새  파일들을 저장할 디렉토리를 생성
-        os.makedirs(os.path.join(target_dir))
-
-    #print(str_rename)
-    img_file = Image.open(str)
-    #img_file.show()
-    img_file.save(target_dir + str_rename)
+if not(os.path.isdir(after_dir)):                 #새  파일들을 저장할 디렉토리를 생성
+    os.makedirs(os.path.join(after_dir))
 
 
+for label_folder in befor_file_list:
+      # 10%
 
-    #text answer
-    str_answer = str2[6]+"_"+str2[7].split(".")[0]+".txt"
-    #print(str_answer)
-    answer_file = open(target_dir+str_answer,'w')
-    answer_file.write(answer)
-    #answer_file.write('\n')
-    #answer_file.write(len(answer))
-    answer_file.close()
-    #print(str)
+    count = 0;
 
-file.close()
+    if not (os.path.isdir(after_dir+'/'+label_folder)):  # 새  파일들을 저장할 디렉토리를 생성
+        os.makedirs(os.path.join(after_dir+'/'+label_folder))
+
+    image_list = os.listdir(befor_dir+'/'+label_folder)
+
+    test_image_num = len(image_list) * 0.2      # each label images's 5%
+
+    for image in image_list:
+
+        if count < test_image_num:
+            shutil.move(befor_dir+'/'+label_folder+'/'+image , after_dir+'/'+label_folder+'/'+image)
+            count = count + 1
+            print(
+                befor_dir + '/' + label_folder + '/' + image + ' \n are copy to \n' + after_dir + '/' + label_folder + '/' + image)
+        else :
+            break;
