@@ -20,6 +20,12 @@ import numpy as np
 import PIL
 import sys
 import math
+from sklearn import tree
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.metrics import accuracy_score
 
 '''
 ===============================================================================================
@@ -50,7 +56,7 @@ version sequence also change..
 
 
 
-[Lastest update] : 2020.11.06
+[Lastest update] : 2020.11.09
 
 ================[VGG19 version]================
 ver 1.0 batch 8, epoch 5
@@ -79,14 +85,14 @@ ver 5.4 VGG19,  batch 16, epoch 20, resize 224, label 47,                       
 ver 5.0 spinalnet + vgg5 with EMNIST byclass    
 ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24 
 
-================================================
-================[ConnNet]================
+
+================[ConnNet]======================
 
 ver 6.x Simple network
-ver 6.1_47 = 47 label
-ver 6.2_62 = 62 label
+ver 6.1x = 47 label
+ver 6.2x = 62 label
 
-ver 6.1_47 VGG16 5.4_47 + simplenet epoch 20, batch16, Data : skeletonized_character_Dataset_1021  [******** 11.06 now attending]
+ver 6.11 + VGG19 5.4_47 + simplenet epoch 30, batch16, Data : skeletonized_character_Dataset_1021  [******** 11.06 now attending]
 
 ver 7.x Decision Tree
 
@@ -110,13 +116,11 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 
 
 
-
-
 ===============================================================================================
 '''
 
-epoch_count = 20
-version = "6.1_47"
+epoch_count = 30
+version = "6.11"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -300,6 +304,7 @@ class Net_convol(nn.Module):
 
 # Connected Network -2 Decision Tree
 
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
@@ -342,7 +347,13 @@ if model_choose == "1":
     model_type2 = "ConnNet_47"
 
 elif model_choose=="2":
-    print("not yet")
+    net2 = Net_DT()
+    net2 = net2.to(device)
+    param = list(net2.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type2 = "ConnNet_DT_47"
 # print(param[0].shape)
 
 
@@ -549,16 +560,19 @@ def test():
 
 
 
-def train2():
+def train2(model_name2):
+
+    net2 = Net_convol()
+    net.to(device)
+    net2.to(device)
+
 
 
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.Adam(net.parameters(), lr=0.00001)  # origin  lr =0.00001
     train_size = dataset_sizes[TRAIN]
 
-    model_dir, model_name = model_loader()
-    #print(model_name.split("_")[1])
-    net.load_state_dict(torch.load(model_dir))
+
 
 
     for epoch in range(epoch_count):  # loop over the dataset multiple times   #100 epoch -> 3
@@ -590,7 +604,7 @@ def train2():
 
             if (loss.item() > 1000):
                 print(loss.item())
-                for param in net3.parameters():
+                for param in net2.parameters():
                     print(param.data)
             # print statistics
             running_loss += loss.item()
@@ -617,14 +631,13 @@ def train2():
 
     print('Finished Training')
 
-
-    model_type2 = "ConvNet"
-    model_name2 = model_type2 + "_v" + version +"_ep" + str(epoch_count) + "_batch" + str(batch)+"__+"+model_name
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}+{}_.pth".format(model_name.split("_")[1], model_name2)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_.pth".format(model_name2)
+    print(model_name2)
     torch.save(net2.state_dict(), save_path)
 
 
-def validation2():
+def validation2(model_name2):
+    print("valid model:", model_name2)
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
     TP, TN, FP, FN =0,0,0,0
@@ -654,11 +667,11 @@ def validation2():
 
 
     # log file save
-    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name3),
+    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name2),
                 'w')
     file.write("Test dataset dir : {}\n".format(data_dir))
     # vector, result save path.
-    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name3)
+    newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name2)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
         os.makedirs(os.path.join(newPath))
 
@@ -689,6 +702,7 @@ def validation2():
 
 
 def test2():
+    print("test2 mocel :",model_name2)
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
     total_acc = 0
@@ -711,7 +725,7 @@ def test2():
                 class_total[label] += 1
 
     file = open(
-        '{} Test_connectedNet_log_{}_.txt'.format(log_path, model_name),
+        '{} Test_connectedNet_log_{}_.txt'.format(log_path, model_name2),
         'w')
     file.write("Test dataset dir : {}\n".format(data_dir))
     file.write("Label                   correct count  |  total count \n")
@@ -733,10 +747,22 @@ def test2():
     file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
     file.close()
 
+def DT_train():
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+    vector_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=3, random_state=0)
+    vector_tree.fit(X_train, y_train)
+
+
+    y_pred_tr = vector_tree.predict(X_test)
+    print('Accuracy: %.2f' % accuracy_score(y_test, y_pred_tr))
+
 
 #================================================================================================#
 
-
+#######
+# k -fold  or Train val test split
+#
 
 data_transforms = {
     TRAIN: transforms.Compose([
@@ -811,7 +837,8 @@ print(data_dir)
 print("")
 s = 't'
 while (s != "1" or s != "2" or s != "3"):
-    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | (4) train connNet with skeletonized_vector data   \n (5) validation connNet ] ")
+    print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | \n "
+          "(4) train connNet with skeletonized_vector data   (5) validation connNet ] ")
     s = input()
     if s == "1":
 
@@ -857,6 +884,8 @@ while (s != "1" or s != "2" or s != "3"):
         sample_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/sample/'
         sample_list = os.listdir(sample_dir)
 
+
+
         for i in sample_list:
             img = Image.open("{}/{}".format(sample_dir, i))
             if (img.mode == "L"):
@@ -876,16 +905,21 @@ while (s != "1" or s != "2" or s != "3"):
 
     elif s == "4":
 
-        net = Net()
-        net2 = Net_convol()
-        net.to(device)
-        net2.to(device)
+        print("Select VGG19 model :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
 
-        train2()
+        net.to(device)
+        vgg19_v = model_name.split("_")[1]
+
+        model_name2 = "ConnNet_" + version + "+" + vgg19_v
+        print("Train model : ", model_name2)
+
+        train2(model_name2)
         print("-----------------------")
-        validation2()
+        validation2(model_name2)
         print("-----------------------")
-        test2()
+        test2(model_name2)
         break
 
     elif s == "5":
