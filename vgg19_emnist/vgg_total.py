@@ -21,11 +21,12 @@ import PIL
 import sys
 import math
 from sklearn import tree
-from sklearn import datasets
+from sklearn import datasets as sk_dataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from sklearn.metrics import accuracy_score
+
 
 '''
 ===============================================================================================
@@ -54,9 +55,7 @@ version sequence also change..
 
 
 
-
-
-[Lastest update] : 2020.11.09
+[Lastest update] : 2020.11.10
 
 ================[VGG19 version]================
 ver 1.0 batch 8, epoch 5
@@ -90,10 +89,11 @@ ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24
 
 ver 6.x Simple network
 ver 6.1x = 47 label
-ver 6.2x = 62 label
+ver 6.xx = 62 label
 
-ver 6.11 + VGG19 5.4_47 + simplenet epoch 30, batch16, Data : skeletonized_character_Dataset_1021  [******** 11.06 now attending]
-
+ver 6.11 + VGG19 5.4_47 : simplenet epoch 30, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 2% 
+ver 6.12 + VGG19 5.4_47 : simplenet epoch 20, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 1% 
+ver 6.13 + VGG19 5.4_47 : simplenet epoch 100, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid   | Test   [******** 11.06 now attending]
 ver 7.x Decision Tree
 
 
@@ -119,8 +119,8 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 ===============================================================================================
 '''
 
-epoch_count = 30
-version = "6.11"
+epoch_count = 100
+version = "6.13"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -284,9 +284,9 @@ class Net(nn.Module):
         return x, features, result, vector
 
 # Connected Network -1 , simple layers
-class Net_convol(nn.Module):
+class Net_convol2(nn.Module):
     def __init__(self):
-        super(Net_convol, self).__init__()
+        super(Net_convol2, self).__init__()
         self.fc1 = nn.Linear(512, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 60)
@@ -302,13 +302,60 @@ class Net_convol(nn.Module):
         x = self.classifier(x)
         return x
 
+# Connected Network -1.1 , simple layers, edit some linear parameter size
+class Net_convol(nn.Module):
+    def __init__(self):
+        super(Net_convol, self).__init__()
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 100)
+        self.classifier = nn.Linear(100, label)
+
+    def forward(self, x):
+        #x = self.pool(F.relu(self.conv1(x)))
+        #x = self.pool(F.relu(self.conv2(x)))
+        #x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = self.classifier(x)
+        return x
+
 # Connected Network -2 Decision Tree
+
+class Net_DT():
+
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+    vector_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=3, random_state=0)
+    #vector_tree.fit(X_train, y_train)
+
+
+   # y_pred_tr = vector_tree.predict(X_test)
+    #print('Accuracy: %.2f' % accuracy_score(y_test, y_pred_tr))
+
+class Net_Autencoder(nn.Module):
+    def __init__(self):
+        super(Net_convol, self).__init__()
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 10)
+        self.fc3 = nn.Linear(10, 256)
+        self.fc4 = nn.Linear(256, 100)
+        self.classifier = nn.Linear(100, label)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
+        x = self.classifier(x)
+        return x
+
+
+#==================================================================
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
-
-
 
 print("Choose  VGG19 - OCR network model |  1: vgg19_1[47] | 2: vgg19_2[62]")
 label=0
@@ -335,7 +382,7 @@ elif model_choose=="2":
     model_type = "VGG19_62"
 
 
-print("Choose  Connected Network model |  1: SimpleNet | 2: DTNet")
+print("Choose  Connected Network model |  1: SimpleNet | 2: DTNet | 3: Autoencoder")
 model_choose = input()
 if model_choose == "1":
     net2 = Net_convol()
@@ -344,7 +391,7 @@ if model_choose == "1":
     print(len(param))
     for i in param:
       print(i.shape)
-    model_type2 = "ConnNet_47"
+    model_type = "ConnNet_Linear"
 
 elif model_choose=="2":
     net2 = Net_DT()
@@ -353,7 +400,16 @@ elif model_choose=="2":
     print(len(param))
     for i in param:
         print(i.shape)
-    model_type2 = "ConnNet_DT_47"
+    model_type = "ConnNet_DT"
+
+elif model_choose=="3":
+    net2 = Net_Autencoder()
+    net2 = net2.to(device)
+    param = list(net2.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type = "ConnNet_AutoEncoder"
 # print(param[0].shape)
 
 
@@ -378,6 +434,8 @@ def model_loader():
     model_name = model_list[int(num)]
     # print(model_dir)
     return model_dir, model_name
+
+
 
 
 def train():
@@ -667,9 +725,9 @@ def validation2(model_name2):
 
 
     # log file save
-    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name2),
+    file = open('{}/Validation_log_{}_.txt'.format(log_path, model_name2),
                 'w')
-    file.write("Test dataset dir : {}\n".format(data_dir))
+    file.write("Valid dataset dir : {}\n".format(data_dir))
     # vector, result save path.
     newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name2)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
@@ -725,7 +783,7 @@ def test2():
                 class_total[label] += 1
 
     file = open(
-        '{} Test_connectedNet_log_{}_.txt'.format(log_path, model_name2),
+        '{} Test_log_{}_.txt'.format(log_path, model_name2),
         'w')
     file.write("Test dataset dir : {}\n".format(data_dir))
     file.write("Label                   correct count  |  total count \n")
@@ -747,15 +805,7 @@ def test2():
     file.write('total correct : %2d | total count  %2d  \n' % (correct_count, total_count))
     file.close()
 
-def DT_train():
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-    vector_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=3, random_state=0)
-    vector_tree.fit(X_train, y_train)
-
-
-    y_pred_tr = vector_tree.predict(X_test)
-    print('Accuracy: %.2f' % accuracy_score(y_test, y_pred_tr))
 
 
 #================================================================================================#
@@ -829,7 +879,7 @@ print(image_datasets[TRAIN].classes)
 
 
 
-model_name = "Ver" + version +"_"+str(label)+"_ep" + str(epoch_count) + "_batch" + str(batch)
+model_name = model_type+"_v" + version +"_"+str(label)+"_ep" + str(epoch_count) + "_batch" + str(batch)
 print("")
 print(model_name)
 print("")
@@ -841,8 +891,6 @@ while (s != "1" or s != "2" or s != "3"):
           "(4) train connNet with skeletonized_vector data   (5) validation connNet ] ")
     s = input()
     if s == "1":
-
-        # need to set epoch, version info.
 
         train()
         print("-----------------------")
@@ -912,14 +960,14 @@ while (s != "1" or s != "2" or s != "3"):
         net.to(device)
         vgg19_v = model_name.split("_")[1]
 
-        model_name2 = "ConnNet_" + version + "+" + vgg19_v
+        model_name2 = model_type+"_"+label+"_v" + version + "+" + vgg19_v
         print("Train model : ", model_name2)
 
         train2(model_name2)
         print("-----------------------")
         validation2(model_name2)
         print("-----------------------")
-        test2(model_name2)
+        test2()
         break
 
     elif s == "5":
@@ -937,7 +985,7 @@ while (s != "1" or s != "2" or s != "3"):
         net2.to(device)
 
         print("-----------------------")
-        validation2()
+        validation2(model_name2)
         print("-----------------------")
         test2()
         break
