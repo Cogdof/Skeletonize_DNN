@@ -93,7 +93,12 @@ ver 6.xx = 62 label
 
 ver 6.11 + VGG19 5.4_47 : simplenet epoch 30, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 2% 
 ver 6.12 + VGG19 5.4_47 : simplenet epoch 20, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 1% 
-ver 6.13 + VGG19 5.4_47 : simplenet epoch 100, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid   | Test   [******** 11.06 now attending]
+ver 6.13 + VGG19 5.4_47 : simplenet epoch 100, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   1%
+ver 6.14 + VGG19 5.4_47 : autoencoder epoch 30, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   1%
+ver 6.15 + VGG19 5.4_47 : autoencoder epoch 10, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   2%
+ver 6.16 + VGG19 5.4_47 : simplenet epoch 10, batch16, net_conv2 [Dataset: test_char47] : Valid  2% | Test   1%
+
+
 ver 7.x Decision Tree
 
 
@@ -119,8 +124,8 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 ===============================================================================================
 '''
 
-epoch_count = 100
-version = "6.13"
+epoch_count = 10
+version = "6.16"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -131,8 +136,8 @@ batch = 16
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
-#data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
-data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
+#data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -321,21 +326,92 @@ class Net_convol(nn.Module):
         x = self.classifier(x)
         return x
 
-# Connected Network -2 Decision Tree
+    def _cal_penalty(self, layer_idx, _mu, _path_prob):
 
-class Net_DT():
+        penalty = torch.tensor(0.).to(self.device)
 
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-    vector_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=3, random_state=0)
-    #vector_tree.fit(X_train, y_train)
+        batch_size = _mu.size()[0]
+        _mu = _mu.view(batch_size, 2 ** layer_idx)
+        _path_prob = _path_prob.view(batch_size, 2 ** (layer_idx + 1))
 
+        for node in range(0, 2 ** (layer_idx + 1)):
+            alpha = (torch.sum(_path_prob[:, node] * _mu[:, node // 2], dim=0) /
+                     torch.sum(_mu[:, node // 2], dim=0))
 
-   # y_pred_tr = vector_tree.predict(X_test)
-    #print('Accuracy: %.2f' % accuracy_score(y_test, y_pred_tr))
+            layer_penalty_coeff = self.penalty_list[layer_idx]
+
+            penalty -= 0.5 * layer_penalty_coeff * (torch.log(alpha) +
+                                                    torch.log(1 - alpha))
+
+        return penalty
+
+    """ 
+      Add a constant input `1` onto the front of each instance. 
+    """
+
+    def _data_augment(self, X):
+        batch_size = X.size()[0]
+        X = X.view(batch_size, -1)
+        bias = torch.ones(batch_size, 1).to(self.device)
+        X = torch.cat((bias, X), 1)
+
+        return X
+
+    def _validate_parameters(self):
+
+        if not self.depth > 0:
+            msg = 'The tree depth should be strictly positive, but got {} instead.'
+            raise ValueError(msg.format(self.depth))
+
+        if not self.lamda >= 0:
+            msg = ('The coefficient of the regularization term should not be'
+                   ' negative, but got {} instead.')
+            raise ValueError(msg.format(self.lamda))
+
+# Connected Network -2 Decision Tree        https://github.com/AaronX121/Soft-Decision-Tree/
+class Net_DT(nn.Module):
+
+    def __init__(self, input_dim, output_dim, depth=5, lamda=1e-3, use_cuda=False):
+        super(Net_DT, self).__init__()
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.depth = depth
+        self.lamda = lamda
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
+        self._validate_parameters()
+        self.internal_node_num_ = 2 ** self.depth - 1
+        self.leaf_node_num_ = 2 ** self.depth
+
+        # Different penalty coefficients for nodes in different layers
+        self.penalty_list = [self.lamda * (2 ** (-depth))
+                             for depth in range(0, self.depth)]
+
+        # Initialize internal nodes and leaf nodes, the input dimension on
+        # internal nodes is added by 1, serving as the bias.
+        self.inner_nodes = nn.Sequential(
+            nn.Linear(self.input_dim + 1,
+                      self.internal_node_num_, bias=False),
+            nn.Sigmoid())
+
+        self.leaf_nodes = nn.Linear(self.leaf_node_num_,
+                                    self.output_dim, bias=False)
+
+    def forward(self, X, is_training_data=False):
+
+        _mu, _penalty = self._forward(X)
+        y_pred = self.leaf_nodes(_mu)
+
+        # When `X` is the training data, the model also returns the penalty
+        # to compute the training loss.
+        if is_training_data:
+            return y_pred, _penalty
+        else:
+            return y_pred
 
 class Net_Autencoder(nn.Module):
     def __init__(self):
-        super(Net_convol, self).__init__()
+        super(Net_Autencoder, self).__init__()
         self.fc1 = nn.Linear(512, 256)
         self.fc2 = nn.Linear(256, 10)
         self.fc3 = nn.Linear(10, 256)
@@ -960,7 +1036,7 @@ while (s != "1" or s != "2" or s != "3"):
         net.to(device)
         vgg19_v = model_name.split("_")[1]
 
-        model_name2 = model_type+"_"+label+"_v" + version + "+" + vgg19_v
+        model_name2 = model_type+"_"+str(label)+"_v" + version + "+" + vgg19_v
         print("Train model : ", model_name2)
 
         train2(model_name2)

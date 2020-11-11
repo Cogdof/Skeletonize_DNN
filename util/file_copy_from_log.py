@@ -11,8 +11,8 @@ import os
 '''
 
 
-log_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/log_high.txt'
-file_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/word단위_with_label/result_model_mlt25k_ic15_recogtitiontrainset_new/'
+log_path = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/result_log/개정 성능/sensitive/log_fail.txt'
+file_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/image_bad/'
 
 file = open(log_path, mode='rt')
 isinstance(file, collections.Iterable)
@@ -26,10 +26,10 @@ for line in file:
     print(str)
     #print(answer)
     str2 = str.split("/")
-    str_rename = str2[6]+"_"+str2[7]
+    str_rename = str2[10]
 
     # dir generate
-    target_dir = file_dir + str2[6]+'/'
+    target_dir = file_dir + str2[8]+'/'
     if not (os.path.isdir(target_dir)):  # 새  파일들을 저장할 디렉토리를 생성
         os.makedirs(os.path.join(target_dir))
 

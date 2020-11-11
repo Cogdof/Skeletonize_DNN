@@ -20,6 +20,13 @@ import numpy as np
 import PIL
 import sys
 import math
+from sklearn import tree
+from sklearn import datasets as sk_dataset
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.metrics import accuracy_score
+
 
 '''
 ===============================================================================================
@@ -48,9 +55,7 @@ version sequence also change..
 
 
 
-
-
-[Lastest update] : 2020.11.09
+[Lastest update] : 2020.11.11
 
 ================[VGG19 version]================
 ver 1.0 batch 8, epoch 5
@@ -84,9 +89,15 @@ ver 5.1 spinalnet + vgg5 with EMNIST balance     Valid : 90 | test : 24
 
 ver 6.x Simple network
 ver 6.1x = 47 label
-ver 6.2x = 62 label
+ver 6.xx = 62 label
 
-ver 6.11 + VGG19 5.4_47 + simplenet epoch 30, batch16, Data : skeletonized_character_Dataset_1021  [******** 11.06 now attending]
+ver 6.11 + VGG19 5.4_47 : simplenet epoch 30, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 2% 
+ver 6.12 + VGG19 5.4_47 : simplenet epoch 20, batch16 [Dataset: skeletonized_character_Dataset_1021] : Valid 2% | Test 1% 
+ver 6.13 + VGG19 5.4_47 : simplenet epoch 100, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   1%
+ver 6.14 + VGG19 5.4_47 : autoencoder epoch 30, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   1%
+ver 6.15 + VGG19 5.4_47 : autoencoder epoch 10, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021] : Valid  2% | Test   2%
+ver 6.16 + VGG19 5.4_47 : simplenet epoch 10, batch16, net_conv2 [Dataset: test_char47] : Valid  2% | Test   1%
+
 
 ver 7.x Decision Tree
 
@@ -113,8 +124,8 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 ===============================================================================================
 '''
 
-epoch_count = 30
-version = "6.11"
+epoch_count = 10
+version = "6.16"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -125,8 +136,8 @@ batch = 16
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
-#data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
-data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
+#data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -278,9 +289,9 @@ class Net(nn.Module):
         return x, features, result, vector
 
 # Connected Network -1 , simple layers
-class Net_convol(nn.Module):
+class Net_convol2(nn.Module):
     def __init__(self):
-        super(Net_convol, self).__init__()
+        super(Net_convol2, self).__init__()
         self.fc1 = nn.Linear(512, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 60)
@@ -296,12 +307,131 @@ class Net_convol(nn.Module):
         x = self.classifier(x)
         return x
 
-# Connected Network -2 Decision Tree
+# Connected Network -1.1 , simple layers, edit some linear parameter size
+class Net_convol(nn.Module):
+    def __init__(self):
+        super(Net_convol, self).__init__()
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 100)
+        self.classifier = nn.Linear(100, label)
+
+    def forward(self, x):
+        #x = self.pool(F.relu(self.conv1(x)))
+        #x = self.pool(F.relu(self.conv2(x)))
+        #x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = self.classifier(x)
+        return x
+
+    def _cal_penalty(self, layer_idx, _mu, _path_prob):
+
+        penalty = torch.tensor(0.).to(self.device)
+
+        batch_size = _mu.size()[0]
+        _mu = _mu.view(batch_size, 2 ** layer_idx)
+        _path_prob = _path_prob.view(batch_size, 2 ** (layer_idx + 1))
+
+        for node in range(0, 2 ** (layer_idx + 1)):
+            alpha = (torch.sum(_path_prob[:, node] * _mu[:, node // 2], dim=0) /
+                     torch.sum(_mu[:, node // 2], dim=0))
+
+            layer_penalty_coeff = self.penalty_list[layer_idx]
+
+            penalty -= 0.5 * layer_penalty_coeff * (torch.log(alpha) +
+                                                    torch.log(1 - alpha))
+
+        return penalty
+
+    """ 
+      Add a constant input `1` onto the front of each instance. 
+    """
+
+    def _data_augment(self, X):
+        batch_size = X.size()[0]
+        X = X.view(batch_size, -1)
+        bias = torch.ones(batch_size, 1).to(self.device)
+        X = torch.cat((bias, X), 1)
+
+        return X
+
+    def _validate_parameters(self):
+
+        if not self.depth > 0:
+            msg = 'The tree depth should be strictly positive, but got {} instead.'
+            raise ValueError(msg.format(self.depth))
+
+        if not self.lamda >= 0:
+            msg = ('The coefficient of the regularization term should not be'
+                   ' negative, but got {} instead.')
+            raise ValueError(msg.format(self.lamda))
+
+# Connected Network -2 Decision Tree        https://github.com/AaronX121/Soft-Decision-Tree/
+class Net_DT(nn.Module):
+
+    def __init__(self, input_dim, output_dim, depth=5, lamda=1e-3, use_cuda=False):
+        super(Net_DT, self).__init__()
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.depth = depth
+        self.lamda = lamda
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
+        self._validate_parameters()
+        self.internal_node_num_ = 2 ** self.depth - 1
+        self.leaf_node_num_ = 2 ** self.depth
+
+        # Different penalty coefficients for nodes in different layers
+        self.penalty_list = [self.lamda * (2 ** (-depth))
+                             for depth in range(0, self.depth)]
+
+        # Initialize internal nodes and leaf nodes, the input dimension on
+        # internal nodes is added by 1, serving as the bias.
+        self.inner_nodes = nn.Sequential(
+            nn.Linear(self.input_dim + 1,
+                      self.internal_node_num_, bias=False),
+            nn.Sigmoid())
+
+        self.leaf_nodes = nn.Linear(self.leaf_node_num_,
+                                    self.output_dim, bias=False)
+
+    def forward(self, X, is_training_data=False):
+
+        _mu, _penalty = self._forward(X)
+        y_pred = self.leaf_nodes(_mu)
+
+        # When `X` is the training data, the model also returns the penalty
+        # to compute the training loss.
+        if is_training_data:
+            return y_pred, _penalty
+        else:
+            return y_pred
+
+class Net_Autencoder(nn.Module):
+    def __init__(self):
+        super(Net_Autencoder, self).__init__()
+        self.fc1 = nn.Linear(512, 256)
+        self.fc2 = nn.Linear(256, 10)
+        self.fc3 = nn.Linear(10, 256)
+        self.fc4 = nn.Linear(256, 100)
+        self.classifier = nn.Linear(100, label)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
+        x = self.classifier(x)
+        return x
+
+
+#==================================================================
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
-
-
 
 print("Choose  VGG19 - OCR network model |  1: vgg19_1[47] | 2: vgg19_2[62]")
 label=0
@@ -328,7 +458,7 @@ elif model_choose=="2":
     model_type = "VGG19_62"
 
 
-print("Choose  Connected Network model |  1: SimpleNet | 2: DTNet")
+print("Choose  Connected Network model |  1: SimpleNet | 2: DTNet | 3: Autoencoder")
 model_choose = input()
 if model_choose == "1":
     net2 = Net_convol()
@@ -337,10 +467,25 @@ if model_choose == "1":
     print(len(param))
     for i in param:
       print(i.shape)
-    model_type2 = "ConnNet_47"
+    model_type = "ConnNet_Linear"
 
 elif model_choose=="2":
-    print("not yet")
+    net2 = Net_DT()
+    net2 = net2.to(device)
+    param = list(net2.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type = "ConnNet_DT"
+
+elif model_choose=="3":
+    net2 = Net_Autencoder()
+    net2 = net2.to(device)
+    param = list(net2.parameters())
+    print(len(param))
+    for i in param:
+        print(i.shape)
+    model_type = "ConnNet_AutoEncoder"
 # print(param[0].shape)
 
 
@@ -365,6 +510,8 @@ def model_loader():
     model_name = model_list[int(num)]
     # print(model_dir)
     return model_dir, model_name
+
+
 
 
 def train():
@@ -547,7 +694,7 @@ def test():
 
 
 
-def train2():
+def train2(model_name2):
 
     net2 = Net_convol()
     net.to(device)
@@ -618,12 +765,12 @@ def train2():
 
     print('Finished Training')
 
-    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_.pth".format(model_name.split("_")[1], model_name2)
+    save_path = "/home/mll/v_mll3/OCR_data/VGG_character/model/{}_.pth".format(model_name2)
     print(model_name2)
     torch.save(net2.state_dict(), save_path)
 
 
-def validation2():
+def validation2(model_name2):
     print("valid model:", model_name2)
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
@@ -654,9 +801,9 @@ def validation2():
 
 
     # log file save
-    file = open('{}/Validation_connectedNet_log_{}_.txt'.format(log_path, model_name2),
+    file = open('{}/Validation_log_{}_.txt'.format(log_path, model_name2),
                 'w')
-    file.write("Test dataset dir : {}\n".format(data_dir))
+    file.write("Valid dataset dir : {}\n".format(data_dir))
     # vector, result save path.
     newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name2)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
@@ -712,7 +859,7 @@ def test2():
                 class_total[label] += 1
 
     file = open(
-        '{} Test_connectedNet_log_{}_.txt'.format(log_path, model_name2),
+        '{} Test_log_{}_.txt'.format(log_path, model_name2),
         'w')
     file.write("Test dataset dir : {}\n".format(data_dir))
     file.write("Label                   correct count  |  total count \n")
@@ -735,9 +882,13 @@ def test2():
     file.close()
 
 
+
+
 #================================================================================================#
 
-
+#######
+# k -fold  or Train val test split
+#
 
 data_transforms = {
     TRAIN: transforms.Compose([
@@ -804,7 +955,7 @@ print(image_datasets[TRAIN].classes)
 
 
 
-model_name = "Ver" + version +"_"+str(label)+"_ep" + str(epoch_count) + "_batch" + str(batch)
+model_name = model_type+"_v" + version +"_"+str(label)+"_ep" + str(epoch_count) + "_batch" + str(batch)
 print("")
 print(model_name)
 print("")
@@ -816,8 +967,6 @@ while (s != "1" or s != "2" or s != "3"):
           "(4) train connNet with skeletonized_vector data   (5) validation connNet ] ")
     s = input()
     if s == "1":
-
-        # need to set epoch, version info.
 
         train()
         print("-----------------------")
@@ -859,6 +1008,8 @@ while (s != "1" or s != "2" or s != "3"):
         sample_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/sample/'
         sample_list = os.listdir(sample_dir)
 
+
+
         for i in sample_list:
             img = Image.open("{}/{}".format(sample_dir, i))
             if (img.mode == "L"):
@@ -885,12 +1036,12 @@ while (s != "1" or s != "2" or s != "3"):
         net.to(device)
         vgg19_v = model_name.split("_")[1]
 
-        model_name2 = "ConnNet_" + version + "+" + vgg19_v
+        model_name2 = model_type+"_"+str(label)+"_v" + version + "+" + vgg19_v
         print("Train model : ", model_name2)
 
-        train2()
+        train2(model_name2)
         print("-----------------------")
-        validation2()
+        validation2(model_name2)
         print("-----------------------")
         test2()
         break
@@ -910,7 +1061,7 @@ while (s != "1" or s != "2" or s != "3"):
         net2.to(device)
 
         print("-----------------------")
-        validation2()
+        validation2(model_name2)
         print("-----------------------")
         test2()
         break
