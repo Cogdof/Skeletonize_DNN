@@ -103,9 +103,17 @@ ver 6.13 + VGG19 5.4_47 : simplenet epoch 100, batch16, net_conv2 [Dataset: skel
 ver 6.14 + VGG19 5.4_47 : autoencoder epoch 30, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021]   : Valid  2% | Test  1%
 ver 6.15 + VGG19 5.4_47 : autoencoder epoch 10, batch16, net_conv2 [Dataset: skeletonized_character_Dataset_1021]   : Valid  2% | Test  2%
 (simplenet -> linear)
+
+Threshold :60%
 ver 6.16 + VGG19 5.4_47 : linear epoch 10, batch16, net_conv2 [Dataset: test_char47]                                : Valid  2% | Test   1% 
-ver 6.17 + VGG19 5.4_47 : linear epoch 10, batch16, net_conv2 [Dataset: EMNIST_balanced]                            : Valid  2% | Test   1%
-ver 6.21 + VGG19 5.4_47 : linear, epooch 30, batch 16, net conv1 [Dataset :seperate_single_character (balance) ]    : Valid  % | Test   %       [now attending]
+ver 6.17 + VGG19 5.4_47 : linear epoch 30, batch16, net_conv2 [Dataset: EMNIST_balanced]                            : Valid  94 % | Test 86% 
+ver 6.18 + VGG19 5.4_47 : linear, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]             : Valid   59% | Test 57%
+
+ver 6.21 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]                : Valid   64% | Test 64%
+ver 6.22 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset: EMNIST_balanced ]                                      : Valid   % | Test %    
+  
+  [now attending]
+
 
 ver 7.x Decision Tree
 
@@ -132,8 +140,8 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 ===============================================================================================
 '''
 
-epoch_count = 30
-version = "6.21"
+epoch_count = 20
+version = "6.22"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -146,7 +154,7 @@ data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # 
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
 #data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
 #data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
-data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)'  # non -skeletonized
+#data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)'  # non -skeletonized
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -231,7 +239,7 @@ elif model_choose=="4":
     print(len(param))
     for i in param:
         print(i.shape)
-    model_type = "ConnNet_AutoEncoder"
+    model_type = "ConnNet_svm"
 
 
 
