@@ -22,6 +22,12 @@ import sys
 import math
 import numpy as np
 from sklearn.metrics import accuracy_score
+from sklearn import tree
+from sklearn import svm
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import plot_precision_recall_curve
+from sklearn.metrics import average_precision_score
 
 import SKDNN.VGG19_47 as VGG19_47
 import SKDNN.VGG19_62 as VGG19_62
@@ -61,7 +67,7 @@ version sequence also change..
 
 
 
-[Lastest update] : 2020.11.11
+[Lastest update] : 2020.11.15
 
 ================[VGG19 version]================
 ver 1.0 batch 8, epoch 5
@@ -106,16 +112,23 @@ ver 6.15 + VGG19 5.4_47 : autoencoder epoch 10, batch16, net_conv2 [Dataset: ske
 
 Threshold :60%
 ver 6.16 + VGG19 5.4_47 : linear epoch 10, batch16, net_conv2 [Dataset: test_char47]                                : Valid  2% | Test   1% 
-ver 6.17 + VGG19 5.4_47 : linear epoch 30, batch16, net_conv2 [Dataset: EMNIST_balanced]                            : Valid  94 % | Test 86% 
-ver 6.18 + VGG19 5.4_47 : linear, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]             : Valid   59% | Test 57%
+ver 6.17 + VGG19 5.4_47 : linear epoch 30, batch16, net_conv2 [Dataset: EMNIST_balanced]                            : Valid 94 % | Test 86% 
+ver 6.18 + VGG19 5.4_47 : linear, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]              : Valid  59% | Test 57%
 
-ver 6.21 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]                : Valid   64% | Test 64%
-ver 6.22 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset: EMNIST_balanced ]                                      : Valid   % | Test %    
-  
+ver 6.21 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset :seperate_single_character (balance) ]                 : Valid   64% | Test 64%
+ver 6.22 + VGG19 5.4_47 : SVM, epoch 20, batch 16,  [Dataset: EMNIST_balanced ]                                     : Valid  98 % | Test 87%    
+
+ver 6.51 + VGG19 5.4_47 : SVM, epoch 20, batch 16,   [Dataset: generate_img ]                                        : Valid  97 % | Test 96 %   << over fitting?
+                                               test  Dataset: test_char47                                       : Valid   % | Test  %   
+                                               test  Dataset: EMNIST_balanced                                      : Valid  2% | Test 1%     >> ????
+                                                     
+ver 6.52 + VGG19 5.4_47 : SVM, epoch 20, batch 16,   [Dataset: EMNIST_balanced ]                                     : Valid  98 % | Test 87 %
+ver 6.53 + VGG19 5.4_47 : SVM, epoch 20, batch 16,   [Dataset: EMNIST_balanced ]                                     : Valid  95 % | Test 88 %    
+    
   [now attending]
 
 
-ver 7.x Decision Tree
+ver 7.x Decision Tree 
 
 
 
@@ -140,8 +153,8 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 ===============================================================================================
 '''
 
-epoch_count = 20
-version = "6.22"
+epoch_count = 10
+version = "6.53"
 batch = 16
 
 #   ver1 ~ 3 (26+10)
@@ -150,11 +163,13 @@ batch = 16
 
 # data_dir = '/home/mll/v_mll3/OCR_data/인식_100데이터셋/single_character_Data (사본)/beta_skeletonize'
 # data_dir = '/home/mll/v_mll3/OCR_data/dataset/single_character_dataset/dataset/after_skeletonize'
-data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
+#data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_balanced'  # emnist_balanced
 #data_dir = '/home/mll/v_mll3/OCR_data/dataset/MNIST_dataset/EMNIST_byclass'  # EMNIST_byclass
-#data_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
-#data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized_character_Dataset_1021'  # skeletonized data
+#ata_dir = "/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/test_char47"
+data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized data/skeletonized_character_Dataset_1021/'  # skeletonized data
 #data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)'  # non -skeletonized
+#data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/generate_img/'
+
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -443,7 +458,7 @@ def test():
 
 
 
-def train2(model_name2):
+def train2():
 
     net.to(device)
     net2.to(device)
@@ -516,7 +531,7 @@ def train2(model_name2):
     torch.save(net2.state_dict(), save_path)
 
 
-def validation2(model_name2):
+def validation2():
     print("valid model:", model_name2)
     class_correct = list(0. for i in range(label_count))
     class_total = list(0. for i in range(label_count))
@@ -551,6 +566,7 @@ def validation2(model_name2):
                 'w')
     file.write("Valid dataset dir : {}\n".format(data_dir))
     file.write("epoch : {}, batch {} \n".format(epoch_count, batch))
+    file.write("Name : {} \n".format(model_name2))
     # vector, result save path.
     newPath = '{}/Valid_log_vector,result_{}'.format(log_path, model_name2)
     if not (os.path.isdir(newPath)):  # 새  파일들을 저장할 디렉토리를 생성
@@ -608,6 +624,7 @@ def test2():
     file = open('{} Test_log_{}_.txt'.format(log_path, model_name2),'w')
     file.write("Test dataset dir : {}\n".format(data_dir))
     file.write("epoch : {}, batch {} \n".format(epoch_count, batch))
+    file.write("Name : {} \n".format(model_name2))
     file.write("Label                   correct count  |  total count \n")
     total_count = 0
     correct_count = 0
@@ -707,7 +724,8 @@ print("")
 s = 't'
 while (s != "1" or s != "2" or s != "3"):
     print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | \n "
-          "(4) train connNet with skeletonized_vector data     |    (5) validation connNet      | (6) connNET DT] ")
+          "(4) train connNet with skeletonized_vector data     |    (5) validation connNet      | (6)  sklearn's  Decision Tree    "
+          "(7) sklearn's SVM] ")
     s = input()
     if s == "1":
 
@@ -782,9 +800,9 @@ while (s != "1" or s != "2" or s != "3"):
         model_name2 = model_type+"_"+str(label)+"_v" + version + "+" + vgg19_v
         print("Train model : ", model_name2)
 
-        train2(model_name2)
+        train2()
         print("-----------------------")
-        validation2(model_name2)
+        validation2()
         print("-----------------------")
         test2()
         break
@@ -792,23 +810,23 @@ while (s != "1" or s != "2" or s != "3"):
     elif s == "5":
 
 
-        print("Select VGG19 model :")
+        print("Select VGG19 model to valid :")
         model_dir, model_name = model_loader()
         net.load_state_dict(torch.load(model_dir))
         net.to(device)
 
-        print("Select ConnNet model :")
+        print("Select ConnNet model to valid :")
         model_dir2, model_name2= model_loader()
         net2.load_state_dict(torch.load(model_dir2))
         net2.to(device)
 
         print("-----------------------")
-        validation2(model_name2)
+        validation2()
         print("-----------------------")
         test2()
         break
 
-    elif s == "6":
+    elif s == "6":      # vector to csv
 
         print("Select VGG19 model :")
         model_dir, model_name = model_loader()
@@ -816,11 +834,135 @@ while (s != "1" or s != "2" or s != "3"):
         net.to(device)
 
 
+        x_train = []
+        y_train = []
+        x_test = []
+        y_test = []
+        i = 0
+        print("train..")
+        for data in dataloaders[TRAIN]:
+
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = labels.to(torch.device("cpu"))
+
+            np_vector = vector2.detach().numpy()
+            np_labels = labels2.detach().numpy()
+            #print(len(np_vector))
+            for j in range(0,len(np_vector)):
+
+                x_train.append(np_vector[j])
+                y_train.append(np_labels[j])
+
+
+        dt_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=6, random_state=0)
+        dt_tree.fit(x_train, y_train)
+
+        print("test..")
+        for data in dataloaders[TEST]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = labels.to(torch.device("cpu"))
+
+            np_vector = vector2.detach().numpy()
+            np_labels = labels2.detach().numpy()
+            for j in range(0, len(np_vector)):
+                x_test.append(np_vector[j])
+                y_test.append(np_labels[j])
+
+
+
+
+        y_pred = dt_tree.predict(x_test)
+        print('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
 
         print("-----------------------")
-        validation2(model_name2)
+        file = open('{}/Decision tree_log_{}.txt'.format(log_path,model_name), 'w')
+        file.write("Test dataset dir : {}\n".format(data_dir))
+        file.write("Test acc : {}\n".format(accuracy_score(y_test, y_pred)))
+
+        break
+
+    elif s == "7":  # SVM
+
+        print("Select VGG19 model :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+
+        x_train = []
+        y_train = []
+        x_test = []
+        y_test = []
+        i = 0
+        print("train..")
+        for data in dataloaders[TRAIN]:
+
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = labels.to(torch.device("cpu"))
+
+            np_vector = vector2.detach().numpy()
+            np_labels = labels2.detach().numpy()
+            # print(len(np_vector))
+            for j in range(0, len(np_vector)):
+                x_train.append(np_vector[j])
+                y_train.append(np_labels[j])
+
+        vector_svm = svm.SVC(kernel='rbf')
+        kernal = 'rbf'
+        #kernel{‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
+        vector_svm.fit(x_train, y_train)
+
+        print("test..")
+        for data in dataloaders[TEST]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = labels.to(torch.device("cpu"))
+
+            np_vector = vector2.detach().numpy()
+            np_labels = labels2.detach().numpy()
+            for j in range(0, len(np_vector)):
+                x_test.append(np_vector[j])
+                y_test.append(np_labels[j])
+
+        y_pred = vector_svm.predict(x_test)
+        #average_precision = average_precision_score(y_test, y_pred)
+
+        print('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
+        print('F1 score : %.2f' % f1_score(y_test, y_pred, average='micro'))
+
+
         print("-----------------------")
-        test2()
+        file = open('{}/SVM_{}_log_{}.txt'.format(log_path,kernal, model_name), 'w')
+        file.write("Test dataset dir : {}\n".format(data_dir))
+        file.write('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
+        file.write('F1 score : %.2f' % f1_score(y_test, y_pred, average='micro'))
+
         break
 
     else:

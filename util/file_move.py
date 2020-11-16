@@ -8,8 +8,8 @@ import shutil
 '''
 
 
-befor_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)/Train'
-after_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)/Test'
+befor_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/generate_img/Train'
+after_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/generate_img/Validation'
 
 befor_file_list = os.listdir(befor_dir)
 
@@ -27,7 +27,7 @@ for label_folder in befor_file_list:
 
     image_list = os.listdir(befor_dir+'/'+label_folder)
 
-    test_image_num = len(image_list) * 0.2      # each label images's 5%
+    test_image_num = len(image_list) * 0.05      # each label images's 5%
 
     for image in image_list:
 
