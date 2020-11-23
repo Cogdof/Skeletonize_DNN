@@ -10,23 +10,24 @@ from PIL import Image
 # new upate to non save txt (redundant)
 #------------------------------------------
 
-folder_path = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeB/IC13_craft_after/'                    #바운더리파일 과 선이 그어진 기존 파일이 저장되어 있는 디렉토리
-imagePath = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeB/IC13/'                      # bounadary가 없는 원본이미지 경로
-savePath = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc/IC13/'                     #새 파일들을 저장할 디렉토리
+folder_path = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_label/'                    #바운더리파일 과 선이 그어진 기존 파일이 저장되어 있는 디렉토리
+imagePath = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrG/'                      # bounadary가 없는 원본이미지 경로
+savePath = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc/'                     #새 파일들을 저장할 디렉토리
 
-total_folder = os.listdir(folder_path)
+folder_list = os.listdir(folder_path)                    #기존 파일 디렉토리에서 파일 목록 생성
+img_list = os.listdir(imagePath)
 
-for folder in total_folder:
-    path = folder_path +folder+"/"
-    newPath = savePath+folder+"/"
-    file_list = os.listdir(path)                    #기존 파일 디렉토리에서 파일 목록 생성
-    img_list = os.listdir(path)
+for folder in folder_list :
+    file_list = os.listdir(folder_path+"/"+folder)                    #기존 파일 디렉토리에서 파일 목록 생성
+    img_list = os.listdir(imagePath +"/"+folder)
 
-    if not(os.path.isdir(newPath+folder)):                 #새  파일들을 저장할 디렉토리를 생성
-        os.makedirs(os.path.join(newPath+folder))
+    file_list.sort()
+    img_list.sort()
+
 
     file_list_txt = [file for file in file_list if file.endswith(".txt")]   #txt 파일만 추려냄
-    file_list_jpg = [file for file in file_list if file.endswith(".jpg")]   #jpg 파일만 추려냄
+
+    file_list_jpg = [file for file in img_list if file.endswith(".jpg")]   #jpg 파일만 추려냄
     if len(file_list_jpg)==0:
         file_list_png = [file for file in file_list if file.endswith(".png")]
         png_true = True
@@ -45,9 +46,9 @@ for folder in total_folder:
         sortedlist= sorted(newlists, key=lambda newlists: newlists[0])
         return sortedlist
 
-
+    print(folder)
     for i in file_list_txt:                         #텍스트 파일 열기
-        f = open(path+"/"+i,'r')
+        f = open(folder_path+"/"+folder+"/"+i,'r')
         lines = f.readlines()
         f.close()
         #
@@ -57,15 +58,14 @@ for folder in total_folder:
         #j = j.replace("txt","jpg")
        # img = Image.open(imagePath + "/" + i.replace("res_", ""))
         if png_true:# png or jpg
-            img = Image.open(path + "/" + i.replace("txt", "png"))
+            img = Image.open(imagePath +"/"+folder + "/" + i.replace("txt", "png"))
         else:
-            img = Image.open(path + "/" +i.replace("txt", "jpg"))
+            img = Image.open(imagePath +"/"+folder + "/" +i.replace("txt", "jpg"))
         fileNum = 1                                 #새로 생성될 파일 넘버링
-
         for line in lines2:
             #print(line)
             #fileName = i[:-4] + "_" + str(fileNum) + ".txt"
-            imageName = i[:-4] + "_" + str(fileNum) + ".jpg"
+            imageName = i[:-4] + "_" + str(fileNum) + ".png"
             #fw = open(newPath+"/"+fileName, "a")
             #get_list = line.copy()
             #get_list = list(map(str,get_list))
@@ -90,9 +90,12 @@ for folder in total_folder:
 
             cropping_img = img.crop(area)
 
-            asd = newPath+"/"+imageName
-            print(asd)
-            cropping_img = cropping_img.convert("RGB")
+            asd = savePath+"/"+folder+"/"+imageName
+            if not (os.path.isdir(savePath+"/"+folder)):
+                os.makedirs(os.path.join(savePath+"/"+folder))
+
+            #print("{}\t".format(asd))
+            #cropping_img = cropping_img.convert()
             cropping_img.save(asd)
             #shutil.copy(path+"/"+i[:-4]+".jpg",newPath+"/"+imageName)   #lines 수 만큼 image파일 생성
             cropping_img.close()
