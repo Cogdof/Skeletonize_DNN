@@ -35,6 +35,7 @@ import SKDNN.ConnNet_Autoencoder as ConnNet_Autoencoder
 import SKDNN.ConnNet_DT as ConnNet_DT
 import SKDNN.ConnNet_Linear as ConnNet_Linear
 import SKDNN.ConnNet_SVM as ConnNet_SVM
+from sklearn.metrics import classification_report
 
 import pickle
 from sklearn.externals import joblib
@@ -133,9 +134,12 @@ ver 6.53 + VGG19 5.4_47 : SVM, epoch 20, batch 16,   [Dataset: EMNIST_balanced ]
   [now attending]
 
 
-ver 7.01  + VGG19 5.4_47 : SVM epoch 30, batch8,   [Dataset: TrGc_clear_seperate]                                : Valid  % | Test   % 
+ver 7.01  + VGG19 5.4_47 : SVM epoch 30, batch8,  kernel='rbf', gamma=0.01, verbose=1, max_iter=100  [Dataset: TrGc_clear_seperate]                                     Test  9%  | TeBc : %
+ver 7.02  + VGG19 5.4_47 : SVM epoch 30, batch8,  kernel='rbf', verbose=1, max_iter=1000   [Dataset: TrGc_clear_TrGc_clear_skeletonize]                                : Valid  % | Test   % 
 
 
+ver 8.01  + VGG19 5.4_47 : SVM epoch 30, batch8,  kernel='rbf', gamma=0.01, verbose=1, max_iter=100  [Dataset: TrGc_clear_seperate_old]                                     Test  9%  | TeBc : %
+ver 8.02  + VGG19 5.4_47 : SVM epoch 30, batch8,  kernel='rbf', verbose=1, max_iter=1000             [Dataset: TrGc_clear_skeletonize]                                : Valid  % | Test   % 
 
 
 [Final model] 
@@ -159,7 +163,7 @@ ConnNet_v6.x_+_OCR_v5.x_ep00_batch00_
 '''
 
 epoch_count = 5
-version = "4.7"
+version = "8.04"
 batch = 8
 
 #   ver1 ~ 3 (26+10)
@@ -174,9 +178,15 @@ batch = 8
 #data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/skeletonized data/skeletonized_character_Dataset_1021/'  # skeletonized data
 #data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/seperate_single_character (balance)'  # non -skeletonized
 #data_dir = '/home/mll/v_mll3/OCR_data/deep-text-recognition-benchmark-master/dataset/generate_img/'
-data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_clear_seperate/'
+#data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_clear_seperate_old/'
+
+#data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc_clear/'
 #test_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/test_sample/'
 
+#data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_clear_seperate_skeletonize/'
+#data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_clear_seperate_skeletonize/'
+#data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc_clear_Deep'
+data_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc_clear_Deep/SK_thin'
 
 TRAIN = 'Train'
 VAL = 'Validation'
@@ -733,10 +743,11 @@ s = 't'
 while (s != "1" or s != "2" or s != "3"):
     print("Please command \n [ ( 1 ) train the model |  ( 2 ) load pre-trained model | (3) test_sample_case | \n "
           "(4) train connNet with skeletonized_vector data     |    (5) Load sklearn's SVM   | (6) Train sklearn's  Decision Tree    "
-          "(7) Train sklearn's SVM   | (7) sample sklearn's SVM ] ")
+          "(7) Train sklearn's SVM   | (8) sample sklearn's SVM | (9) sklearn's SVM TeBc| (10) sklearn's DT TeBc ] ")
     s = input()
     if s == "1":
         model_name = model_type+"_v" + version +"_"+str(label)+"_ep" + str(epoch_count) + "_batch" + str(batch)
+        print(model_name)
         train()
         print("-----------------------")
         validation()
@@ -867,20 +878,28 @@ while (s != "1" or s != "2" or s != "3"):
 
         break
 
-    elif s == "6":      # vector to csv
+    elif s == "6":      # Decision tree
 
         print("Select VGG19 model :")
         model_dir, model_name = model_loader()
         net.load_state_dict(torch.load(model_dir))
         net.to(device)
 
-
+        model_type2="ConnNet_DT"
         x_train = []
         y_train = []
         x_test = []
         y_test = []
         i = 0
+        vgg19_v = model_name.split("_")[1]
+        model_name2 = model_type2 + "_" + str(label) + "_v" + version + "+" + vgg19_v
+        print("Train model : ", model_name2)
+
         print("train..")
+        #x_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_train.npy".format(model_name2))
+        #y_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_train.npy".format(model_name2))
+        #if x_train.size == 0:
+        print("NO np.. loading...")
         for data in dataloaders[TRAIN]:
 
             images, labels = data
@@ -895,17 +914,25 @@ while (s != "1" or s != "2" or s != "3"):
 
             np_vector = vector2.detach().numpy()
             np_labels = labels2.detach().numpy()
-            #print(len(np_vector))
-            for j in range(0,len(np_vector)):
-
+            # print(len(np_vector))
+            for j in range(0, len(np_vector)):
                 x_train.append(np_vector[j])
                 y_train.append(np_labels[j])
 
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_train'.format(model_name2), x_train)
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_train'.format(model_name2), y_train)
 
-        dt_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=6, random_state=0,  verbose=True)
+        print("fit..")
+        dt_tree = tree.DecisionTreeClassifier(criterion='entropy', max_depth=10, random_state=0)
         dt_tree.fit(x_train, y_train)
 
+
         print("test..")
+        x_test =np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_test.npy".format(model_name2))
+        y_test =np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_test.npy".format(model_name2))
+        #if x_test.size == 0:
+        '''
+        print("NO np.. loading...")
         for data in dataloaders[TEST]:
             images, labels = data
             images = images.cuda()
@@ -922,21 +949,24 @@ while (s != "1" or s != "2" or s != "3"):
             for j in range(0, len(np_vector)):
                 x_test.append(np_vector[j])
                 y_test.append(np_labels[j])
-
-
-
-
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_test'.format(model_name2), x_test)
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_test'.format(model_name2), y_test)
+        '''
+        print("DT..saving...")
+        joblib.dump(dt_tree, '/home/mll/v_mll3/OCR_data/VGG_character/model/{}.pkl'.format(model_name2))
         y_pred = dt_tree.predict(x_test)
-        print('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
+        print('Accuracy: %.4f' % accuracy_score(y_test, y_pred))
+        print(classification_report(y_test, y_pred, target_names=class_names, digits=4))
 
         print("-----------------------")
-        file = open('{}/Decision tree_log_{}.txt'.format(log_path,model_name), 'w')
+        file = open('{}/Log_{}.txt'.format(log_path,model_name2), 'w')
         file.write("Test dataset dir : {}\n".format(data_dir))
         file.write("Test acc : {}\n".format(accuracy_score(y_test, y_pred)))
+        file.write(classification_report(y_test, y_pred, target_names=class_names, digits=4))
 
         break
 
-    elif s == "7":  # SVM
+    elif s == "7":  # SVM train
 
         print("Select VGG19 model :")
         model_dir, model_name = model_loader()
@@ -949,16 +979,18 @@ while (s != "1" or s != "2" or s != "3"):
         y_test = []
         i = 0
 
+        model_type2 ="ConnNet_SVM"
         vgg19_v = model_name.split("_")[1]
         model_name2 = model_type2 + "_" + str(label) + "_v" + version + "+" + vgg19_v
         print("Train model : ", model_name2)
 
-
+        #temp ="ConnNet_Linear_47_v7.01+Ver5.4"
         print("train..")
-        x_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_train.npy".format(model_name2))
-        y_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_train.npy".format(model_name2))
-        if x_train.size ==0 :
-
+        x_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4_x_train.npy")
+        y_train = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4_y_train.npy")
+        '''
+        if x_train.size == 0 :
+            print("NO np.. loading...")
             for data in dataloaders[TRAIN]:
 
                 images, labels = data
@@ -980,49 +1012,57 @@ while (s != "1" or s != "2" or s != "3"):
 
             np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_train'.format(model_name2),x_train)
             np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_train'.format(model_name2),y_train)
-        
+        '''
         print("fit train data...")
-        vector_svm = svm.SVC(kernel='rbf', gamma=0.01, verbose=1, max_iter=100)  #max_iter =-1 (no limit)
+        vector_svm = svm.SVC(kernel='rbf', gamma=0.1, verbose=1, max_iter=100)  #max_iter =-1 (no limit)
         kernal = 'rbf'
         #kernel{‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
-        vector_svm.fit(x_train, y_train)
+        vector_svm.fit(x_train, y_train).score(x_train, y_train)
 
+        x_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4_x_test.npy")
+        y_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4_y_test.npy")
         print("test..")
-        for data in dataloaders[TEST]:
-            images, labels = data
-            images = images.cuda()
-            labels = labels.cuda()
+        '''
+        if x_train.size == 0 :
+            print("NO np.. loading...")
+            for data in dataloaders[TEST]:
+                images, labels = data
+                images = images.cuda()
+                labels = labels.cuda()
 
-            outputs, f, result, vector = net(images)
-            _, predicted = torch.max(outputs, 1)
+                outputs, f, result, vector = net(images)
+                _, predicted = torch.max(outputs, 1)
 
-            vector2 = vector.to(torch.device("cpu"))
-            labels2 = labels.to(torch.device("cpu"))
+                vector2 = vector.to(torch.device("cpu"))
+                labels2 = labels.to(torch.device("cpu"))
 
-            np_vector = vector2.detach().numpy()
-            np_labels = labels2.detach().numpy()
-            for j in range(0, len(np_vector)):
-                x_test.append(np_vector[j])
-                y_test.append(np_labels[j])
-        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_test'.format(model_name2),x_test)
-        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_test'.format(model_name2),y_test)
+                np_vector = vector2.detach().numpy()
+                np_labels = labels2.detach().numpy()
+                for j in range(0, len(np_vector)):
+                    x_test.append(np_vector[j])
+                    y_test.append(np_labels[j])
+            np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_test'.format(model_name2),x_test)
+            np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_test'.format(model_name2),y_test)
+        '''
         y_pred = vector_svm.predict(x_test)
         #average_precision = average_precision_score(y_test, y_pred)
 
 
         joblib.dump(vector_svm, '/home/mll/v_mll3/OCR_data/VGG_character/model/{}.pkl'.format(model_name2))
         print("{} saved.".format(model_name2))
-        print('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
-        print('F1 score : %.2f' % f1_score(y_test, y_pred, average='micro'))
-
+        print('Accuracy: %.4f' % accuracy_score(y_test, y_pred))
+        print('F1 score : %.4f' % f1_score(y_test, y_pred, average='micro'))
+        print(classification_report(y_test, y_pred, target_names=class_names, digits=4))
 
         print("-----------------------")
-        file = open('{}/SVM_{}_log_{}.txt'.format(log_path,kernal, model_name), 'w')
+        file = open('{}/SVM_{}_log_{}.txt'.format(log_path,kernal, model_name2), 'w')
         file.write("Test dataset dir : {}\n".format(data_dir))
-        file.write('Accuracy: %.2f' % accuracy_score(y_test, y_pred))
-        file.write('F1 score : %.2f' % f1_score(y_test, y_pred, average='micro'))
+        file.write('Accuracy: %.4f\n' % accuracy_score(y_test, y_pred))
+        file.write('F1 score : %.4f\n' % f1_score(y_test, y_pred, average='micro'))
+        file.write(classification_report(y_test, y_pred, target_names=class_names, digits=4))
         file.close()
         break
+
     elif s == "8":  # SVM sample test
 
         print("Select VGG19 model to valid :")
@@ -1036,7 +1076,7 @@ while (s != "1" or s != "2" or s != "3"):
 
         print(model_name + " + " + model_name2 + " : target model.")
 
-        sample_dir = test_dir
+        sample_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc/IC13'
         sample_list = os.listdir(sample_dir)
 
         for i in sample_list:
@@ -1049,7 +1089,7 @@ while (s != "1" or s != "2" or s != "3"):
             img = data_transforms[TEST](img)
             img = img.unsqueeze(0)
             image = img.cuda()
-            net.eval()
+            #net.eval()
             outputs, f, result, vector = net(image)
             _, predicted = torch.max(outputs, 1)
 
@@ -1070,6 +1110,157 @@ while (s != "1" or s != "2" or s != "3"):
 
         break
 
+    elif s == "9":  # SVM  test TeBc
+
+        print("Select VGG19 model to valid :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+
+        print("Select ConnNet model to valid :")
+        model_dir2, model_name2 = model_loader()
+        svm = joblib.load(model_dir2)
+
+        print(model_name + " + " + model_name2 + " : target model.")
+
+        x_test = []
+        y_test = []
+
+        print("test.."Unreeeeunununuununun
+
+
+        )
+
+        x_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4.pkl_x_test.npy")
+        y_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/ConnNet_DT_47_v8.02+Ver5.4.pkl_y_test.npy")
+
+        y_pred = svm.predict(x_test)
+        # average_precision = average_precision_score(y_test, y_pred)
+
+
+        #print("{} saved.".format(model_name2))
+        print('Accuracy: %.4f' % accuracy_score(y_test, y_pred))
+        print('F1 score : %.4f' % f1_score(y_test, y_pred, average='micro'))
+        print(classification_report(y_test, y_pred, target_names=class_names, digits=4))
+        print("-----------------------")
+
+
+    elif s == "10":  # DT  test TeBc
+
+        print("Select VGG19 model to valid :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+
+        print("Select ConnNet model to valid :")
+        model_dir2, model_name2 = model_loader()
+        dt_tree = joblib.load(model_dir2)
+
+        print(model_name + " + " + model_name2 + " : target model.")
+
+        x_test = []
+        y_test = []
+
+        print("test..")
+        print("NO np.. loading...")
+        for data in dataloaders[TEST]:
+            images, labels = data
+            images = images.cuda()
+            labels = labels.cuda()
+
+            outputs, f, result, vector = net(images)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = labels.to(torch.device("cpu"))
+
+            np_vector = vector2.detach().numpy()
+            np_labels = labels2.detach().numpy()
+            for j in range(0, len(np_vector)):
+                x_test.append(np_vector[j])
+                y_test.append(np_labels[j])
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_x_test'.format(model_name2), x_test)
+        np.save('/home/mll/v_mll3/OCR_data/VGG_character/np/{}_y_test'.format(model_name2), y_test)
+
+       # x_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/TeBc_clear_x_test.npy")   #Sk_thin_TeBc_clear
+       # y_test = np.load("/home/mll/v_mll3/OCR_data/VGG_character/np/TeBc_clear_y_test.npy")
+
+        print("predict..")
+        y_pred = dt_tree.predict(x_test)
+        # average_precision = average_precision_score(y_test, y_pred)
+
+        print('Accuracy: %.4f' % accuracy_score(y_test, y_pred))
+        print('F1 score : %.4f' % f1_score(y_test, y_pred, average='micro'))
+        print(classification_report(y_test, y_pred, target_names=class_names, digits=4))
+        print("-----------------------")
+
+    elif s == "11":  # DT  sample
+
+        print("Select VGG19 model to valid :")
+        model_dir, model_name = model_loader()
+        net.load_state_dict(torch.load(model_dir))
+        net.to(device)
+
+        print("Select ConnNet model to valid :")
+        model_dir2, model_name2 = model_loader()
+        dt_tree = joblib.load(model_dir2)
+
+        print(model_name + " + " + model_name2 + " : target model.")
+
+        log_file = open('/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc/DT_detect_not_deep.txt','w')
+
+        sample_dir = '/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc_notDeep/'
+        label_file = open('/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc_clear_Deep/save_log.txt', 'r')
+        sample_list = os.listdir(sample_dir)
+        label_dict = {}
+
+        for i in label_file:
+            dir = i.split("\t")[0].replace("/","_")
+            label = i.split("\t")[2].strip()
+
+            label_dict.update({dir : label})
+
+        count =0
+        label47 = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'D', 'E', 'F', 'G', 'H', 'N', 'Q', 'R',
+                   'T', 'a', 'b',
+                   'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                   'w', 'x', 'y', 'z']
+        import random
+
+
+
+        sample_list.sort()
+        for i in sample_list:
+            img = Image.open("{}/{}".format(sample_dir, i))
+            #if (img.mode == "L"):
+            img = img.convert("RGB")
+
+            img_label = label_dict[i]
+            predicted = 0
+            img = data_transforms[TEST](img)
+            img = img.unsqueeze(0)
+            image = img.cuda()
+            #net.eval()
+            outputs, f, result, vector = net(image)
+            _, predicted = torch.max(outputs, 1)
+
+            vector2 = vector.to(torch.device("cpu"))
+            labels2 = img_label
+
+            np_vector = vector2.detach().numpy()
+            #np_labels = labels2.numpy()
+
+            y_pred = dt_tree.predict(np_vector)
+            #random_label = label47[random.randint(0, 46)]
+            print("{} :  label : {} | ocr predict : {} | y_pred:{}\t{}\t{}\n".format(i, img_label, class_names[predicted], y_pred, class_names[y_pred[0]], img_label==class_names[y_pred[0]]))
+            log_file.write("{} :  label : {} | ocr predict : {} | y_pred:{}\t{}\t{}\n".format(i, img_label, class_names[predicted], y_pred, class_names[y_pred[0]], img_label== class_names[y_pred[0]]))
+            if  img_label==class_names[y_pred[0]]:
+                count+=1
+        print(len(sample_list))
+        print(count)
+
+
+        print("-----------------------")
     else:
         print("check command")
 

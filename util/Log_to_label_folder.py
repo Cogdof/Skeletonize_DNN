@@ -18,7 +18,7 @@ label47 = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'D', 'E',
 folderlist = os.listdir(label_dir)
 for fold in folderlist:
 
-    log = open('/home/mll/v_mll3/OCR_data/final_dataset/dataset/TrGc_label/{}/log_high.txt'.format(fold), 'r')
+    log = open('/home/mll/v_mll3/OCR_data/final_dataset/dataset/TeBc/label_final_cleansing.txt', 'r')
 
     print(fold +" is working")
 
@@ -33,8 +33,8 @@ for fold in folderlist:
             img_dir = line.split("\t")[0]
             label = line.split("\t")[1]
             label = label.strip()
-            score = float(line.split("\t")[2].strip())
-            if len(label)==1 and score > 0.8:
+            #score = float(line.split("\t")[2].strip())
+            if len(label)==1 :#and score > 0.8:
                 if label in label47 or label.lower() in label47:
                     folder_dir = dir+label
                     if not (os.path.isdir(folder_dir)):
